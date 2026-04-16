@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تطبيق إتقان القيم والأخلاق</title>
+    
+    <!-- CDNs -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <style>
+        /* Base Styles & Animations */
+        body { 
+            transition: background-color 0.3s, color 0.3s; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        }
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .hint-pulse { animation: pulseShadow 2s infinite; }
+        @keyframes pulseShadow { 0% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(250, 204, 21, 0); } 100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0); } }
+        
+        /* Intro Animations */
+        @keyframes blob {
+            0% { transform: translate(0px, 0px) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+            100% { transform: translate(0px, 0px) scale(1); }
+        }
+        .animate-blob { animation: blob 7s infinite; }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
+        .animate-bounce-slow { animation: bounce 3s infinite; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.5); border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // --- DATA LAYER ---
+        const studyNotes = [
+            { category: "مدخل ومفاهيم", priority: true, content: "الخلق لغة: السجية والطبع. واصطلاحاً (الجرجاني): هيئة للنفس راسخة تصدر عنها الأفعال بسهولة ويسر من غير حاجة إلى فكر وروية. الأخلاق في الإسلام من خصال التقوى وأثقل ما يوضع في الميزان." },
+            { category: "أسس ومصادر الأخلاق", priority: true, content: "تستند إلى 4 أسس: 1. الفطري (خلق الله الناس على فطر سليمة). 2. العقلي (العقل يستحسن المكارم). 3. التعليمي المكتسب (الأنبياء بعثوا للتعليم والتزكية). 4. الإيماني الجزائي (مراقبة الله وابتغاء مرضاته)." },
+            { category: "خصائص الأخلاق الإسلامية", priority: false, content: "تتميز بـ: ربانية المصدر، الارتباط بالعقيدة والعبادة والدعوة، الشمول (علاقة بالخالق والمخلوق والنفس)، تحقيق العبودية، الوسطية والاعتدال، والثبات (لا تتغير المعايير بتغير الزمان والمكان)." },
+            { category: "الصدق والحلم (أخلاق فردية)", priority: true, content: "الصدق: مطابقة القول الضمير والمخبر عنه، وهو رأس الفضائل. الحلم: ضبط النفس عند الغضب وترك الانتقام مع القدرة، وهو من صفات الله تعالى والأنبياء، وعلاج الغضب بالاستعاذة وتغيير الهيئة." },
+            { category: "العفة والحياء (أخلاق فردية)", priority: true, content: "العفة: ضبط النفس عن الشهوات، وتشمل الفرج واللسان والمال. الحياء: انقباض النفس عن القبائح وتركها، وهو من الإيمان ولا يأتي إلا بخير، ونقصانه يجر للوقاحة والبذاءة." },
+            { category: "الأخلاق الاجتماعية", priority: false, content: "تهدف لتماسك المجتمع. من أسسها: التعاون على البر والتقوى، التواصي بالحق والصبر، ودفع السيئة بالحسنة لتحويل العدو لولي حميم، بشرط ألا يفضي العفو لانتشار الظلم (فحينها يجب الحزم)." }
+        ];
+
+        const mcqBank = [
+            // Syllabus & Intro
+            { id: 1, category: "المقدمة", difficulty: "سهل", page: "ص 4", priority: false, hint: "تتحدث عن المحور الأساسي للأخلاق", question: "ما هو موضوع الوحدة الأولى في مقرر القيم والأخلاق؟", options: [ { text: "الرسول القدوة", isCorrect: false, rationale: "هذا موضوع الوحدة الثانية." }, { text: "القيم الإسلامية", isCorrect: false, rationale: "هذا موضوع الوحدة الثالثة." }, { text: "مكارم الأخلاق", isCorrect: true, rationale: "الوحدة الأولى خصصت للحديث عن مكارم الأخلاق ومدخل إليها." }, { text: "تطبيقات في القيم", isCorrect: false, rationale: "هذا موضوع الوحدة الرابعة." } ] },
+            { id: 2, category: "المقدمة", difficulty: "سهل", page: "ص 4", priority: false, hint: "تتضمن دراسة قدوة المسلمين", question: "في أي وحدة من المقرر يتم دراسة موضوع 'الرسول القدوة'؟", options: [ { text: "الوحدة الأولى", isCorrect: false, rationale: "الأولى عن مكارم الأخلاق." }, { text: "الوحدة الثانية", isCorrect: true, rationale: "الوحدة الثانية خصصت للحديث عن الرسول القدوة وتعامله مع أسرته ومجتمعه." }, { text: "الوحدة الثالثة", isCorrect: false, rationale: "الثالثة للقيم الإسلامية." }, { text: "الوحدة الرابعة", isCorrect: false, rationale: "الرابعة للتطبيقات المعاصرة." } ] },
+            { id: 3, category: "المقدمة", difficulty: "متوسط", page: "ص 3", priority: false, hint: "ينتظر من طالب الجامعة الوصول إليه", question: "ما هو الهدف من اختيار موضوعات هذا المقرر للطالب الجامعي؟", options: [ { text: "مجرد حفظ النصوص الشرعية", isCorrect: false, rationale: "الحفظ مطلوب لكنه ليس الهدف الأوحد." }, { text: "تجاوز الاختبارات النهائية", isCorrect: false, rationale: "الهدف أسمى من ذلك." }, { text: "مراعاة ما وصل إليه من نضج فكري ونمو معرفي لتقويم السلوك", isCorrect: true, rationale: "روعي في الاختيار مستوى النضج الفكري والنمو المعرفي للطالب الجامعي ليكون لبنة صالحة." }, { text: "مقارنة الأخلاق بالفلسفات المادية", isCorrect: false, rationale: "لم يُنص على ذلك كهدف رئيسي بالمقدمة." } ] },
+            { id: 4, category: "المقدمة", difficulty: "سهل", page: "ص 3", priority: false, hint: "يدخل في التطبيقات العملية", question: "من موضوعات الوحدة الرابعة: تعزيز النزاهة ومحاربة الفساد.", options: [ { text: "صواب", isCorrect: true, rationale: "الوحدة الرابعة (تطبيقات) تشمل تعزيز النزاهة ومحاربة الفساد." }, { text: "خطأ", isCorrect: false, rationale: "العبارة صحيحة، فهي من التطبيقات المعاصرة." }, { text: "لا يوجد وحدة رابعة", isCorrect: false, rationale: "المقرر يحتوي على 4 وحدات." }, { text: "هي في الوحدة الأولى", isCorrect: false, rationale: "بل هي في الوحدة الرابعة." } ] },
+            
+            // Definition
+            { id: 5, category: "تعريف الأخلاق", difficulty: "سهل", page: "ص 7", priority: true, hint: "طبيعة الإنسان", question: "ما هو المعنى اللغوي لكلمة الخُلُق؟", options: [ { text: "العبادة المحضة", isCorrect: false, rationale: "العبادة أشمل وأعم." }, { text: "السجية والطبيعة", isCorrect: true, rationale: "الخلق في اللغة اسم لسجية الإنسان وطبيعته التي خلق عليها." }, { text: "المعاملة المالية", isCorrect: false, rationale: "هذا من فروع الفقه." }, { text: "المظهر الخارجي", isCorrect: false, rationale: "الخُلق باطني، بينما الخَلق ظاهري." } ] },
+            { id: 6, category: "تعريف الأخلاق", difficulty: "متوسط", page: "ص 7", priority: false, hint: "رأي ابن فارس في المقاييس", question: "من القائل: 'الخُلق هو السجية لأن صاحبه قد قُدر عليه'؟", options: [ { text: "الجرجاني", isCorrect: false, rationale: "الجرجاني عرفه اصطلاحاً بهيئة النفس." }, { text: "ابن منظور", isCorrect: false, rationale: "ابن منظور صاحب لسان العرب." }, { text: "ابن فارس", isCorrect: true, rationale: "ذكرها ابن فارس في مقاييس اللغة." }, { text: "الجاحظ", isCorrect: false, rationale: "الجاحظ عرفه باصطلاح مختلف." } ] },
+            { id: 7, category: "تعريف الأخلاق", difficulty: "متوسط", page: "ص 7", priority: true, hint: "يشمل الحسن والقبيح", question: "بناءً على تفسير الطاهر بن عاشور لآية (إن هذا إلا خلق الأولين)، هل يطلق لفظ الخُلق على الشر؟", options: [ { text: "لا، يطلق على الخير فقط", isCorrect: false, rationale: "الخلق يشمل الأمرين." }, { text: "نعم، يشمل طبائع الخير وطبائع الشر", isCorrect: true, rationale: "الخلق باعث على عمل يناسبه من خير أو شر." }, { text: "يطلق على العادات المندثرة فقط", isCorrect: false, rationale: "غير صحيح." }, { text: "يطلق على الأفعال الجسدية", isCorrect: false, rationale: "يطلق على السجايا." } ] },
+            { id: 8, category: "تعريف الأخلاق", difficulty: "متوسط", page: "ص 7", priority: false, hint: "العالم الذي تحدث عن الرياضة والاجتهاد", question: "عرّف (.....) الخلق بأنه: حال النفس بها يفعل الإنسان أفعاله بلا روية ولا اختيار، وقد يكون غريزة أو بالرياضة.", options: [ { text: "الجرجاني", isCorrect: false, rationale: "الجرجاني استخدم مصطلح 'هيئة راسخة'." }, { text: "ابن القيم", isCorrect: false, rationale: "لم يذكر في هذا الموضع." }, { text: "الجاحظ", isCorrect: true, rationale: "هذا تعريف الجاحظ للخلق." }, { text: "الطاهر بن عاشور", isCorrect: false, rationale: "عرفه بالسجية المتمكنة." } ] },
+            { id: 9, category: "تعريف الأخلاق", difficulty: "متوسط", page: "ص 7", priority: true, hint: "ركز على مصطلح 'هيئة للنفس راسخة'", question: "كيف عرّف الجرجاني الخُلق؟", options: [ { text: "هيئة للنفس راسخة تصدر عنها الأفعال بسهولة من غير فكر وروية", isCorrect: true, rationale: "هذا هو التعريف الاصطلاحي للجرجاني الدقيق للخلق." }, { text: "العادات الموروثة من الآباء", isCorrect: false, rationale: "ليس تعريفاً علمياً." }, { text: "التكلف في أداء الأفعال المحمودة", isCorrect: false, rationale: "التكلف ينافي الخلق الراسخ." }, { text: "السلوك الظاهري المتقطع", isCorrect: false, rationale: "الخلق يتطلب الرسوخ." } ] },
+            { id: 10, category: "تعريف الأخلاق", difficulty: "صعب", page: "ص 7-8", priority: true, hint: "الشرط الأساسي ليكون الفعل خلقاً", question: "لماذا لا يُقال لمن يتكلف السكوت عند الغضب بجهد أنه ذو 'خُلق الحلم' وفقاً للجرجاني؟", options: [ { text: "لأن الحلم خاص بالأنبياء فقط", isCorrect: false, rationale: "الحلم مكتسب وممكن للمسلمين." }, { text: "لأن فعله صدر عن روية وتكلف ولم يصبح هيئة راسخة في نفسه", isCorrect: true, rationale: "الخلق يتطلب أن يصدر الفعل بسهولة وبدون تكلف، ليعد صفة راسخة." }, { text: "لأنه سكت ولم يتحدث", isCorrect: false, rationale: "السكوت هنا فعل عارض." }, { text: "لأن الغضب ينقض الوضوء", isCorrect: false, rationale: "لا علاقة له بالتعريف." } ] },
+            { id: 11, category: "تعريف الأخلاق", difficulty: "سهل", page: "ص 8", priority: false, hint: "الخلاصة", question: "خلاصة تعريف الخُلق: صفة (.....) في النفس ذات آثار في السلوك.", options: [ { text: "متقلبة", isCorrect: false, rationale: "يجب أن تكون مستقرة." }, { text: "مستقرة", isCorrect: true, rationale: "الخلق يجب أن يكون صفة مستقرة (راسخة)." }, { text: "عارضة", isCorrect: false, rationale: "العارض لا يسمى خلقاً." }, { text: "مؤقتة", isCorrect: false, rationale: "المؤقت ليس خلقاً." } ] },
+            { id: 12, category: "تعريف الأخلاق", difficulty: "سهل", page: "ص 8", priority: false, hint: "سهولة التنفيذ", question: "من شروط الخُلق أن تصدر الأفعال عن الإنسان:", options: [ { text: "بسهولة وتلقائية", isCorrect: true, rationale: "يجب أن تصدر الأفعال بلا روية ولا تفكير عميق، كالسجية." }, { text: "بعد تفكير عميق ومعاناة", isCorrect: false, rationale: "هذا تكلف." }, { text: "طمعاً في المديح", isCorrect: false, rationale: "هذا رياء." }, { text: "خوفاً من العقاب الدنيوي", isCorrect: false, rationale: "هذا ليس من طبيعة الخلق الراسخ." } ] },
+
+            // Status of Ethics
+            { id: 13, category: "مكانة الأخلاق", difficulty: "سهل", page: "ص 8", priority: true, hint: "العلاقة بالتقوى", question: "جعل الله الأخلاق الفاضلة من خصال (.....) ولا تتم إلا بها.", options: [ { text: "الإيمان المبدئي", isCorrect: false, rationale: "هي أخص وأعلى." }, { text: "التقوى", isCorrect: true, rationale: "جعل الله الأخلاق من خصال التقوى ولا تتم إلا بها." }, { text: "السنن المهجورة", isCorrect: false, rationale: "هي أساسيات وليست مهجورة." }, { text: "الفرائض المالية", isCorrect: false, rationale: "هي أعم من المال." } ] },
+            { id: 14, category: "مكانة الأخلاق", difficulty: "سهل", page: "ص 9", priority: true, hint: "الغاية من البعثة النبوية", question: "قال النبي ﷺ: (إنما بعثت لأتمم ...)", options: [ { text: "شرائع الأمم", isCorrect: false, rationale: "النص ورد بلفظ محدد." }, { text: "مكارم الأخلاق", isCorrect: true, rationale: "قال: بعثت لأتمم حسن الأخلاق (أو مكارم الأخلاق)." }, { text: "العبادات الظاهرة", isCorrect: false, rationale: "ذكر الأخلاق لبيان جوهر الدين." }, { text: "بناء الدول", isCorrect: false, rationale: "نص الحديث على الأخلاق." } ] },
+            { id: 15, category: "مكانة الأخلاق", difficulty: "متوسط", page: "ص 9", priority: false, hint: "معيار الخيرية والمحبة", question: "بم ينال العبد محبة النبي ﷺ ويكون من خيار الناس كما في الحديث؟", options: [ { text: "بكثرة المال", isCorrect: false, rationale: "المال ليس معيار المحبة." }, { text: "بقوة الجسد", isCorrect: false, rationale: "القوة لا تكفي." }, { text: "بحسن الخلق", isCorrect: true, rationale: "قال: (إن من أحبكم إلي أحسنكم أخلاقاً)." }, { text: "بكثرة الكلام", isCorrect: false, rationale: "الكلام المذموم مبغوض." } ] },
+            { id: 16, category: "مكانة الأخلاق", difficulty: "سهل", page: "ص 9", priority: true, hint: "ارتقاء الإيمان", question: "أكمل المؤمنين إيماناً (.....).", options: [ { text: "أكثرهم صياماً", isCorrect: false, rationale: "حديث آخر." }, { text: "أحسنهم خلقاً", isCorrect: true, rationale: "نص الحديث: (أكمل المؤمنين إيماناً أحسنهم خلقاً)." }, { text: "أغزرهم علماً", isCorrect: false, rationale: "لم يُنص عليه في هذا الحديث." }, { text: "أكثرهم صدقة", isCorrect: false, rationale: "الحديث ركز على الأخلاق." } ] },
+            { id: 17, category: "مكانة الأخلاق", difficulty: "متوسط", page: "ص 9", priority: true, hint: "ما يوضع في الميزان", question: "ما هو أثقل شيء في ميزان العبد يوم القيامة؟", options: [ { text: "الجهاد", isCorrect: false, rationale: "عظيم، لكن الحديث نص على شيء محدد." }, { text: "قيام الليل", isCorrect: false, rationale: "فضل عظيم ولكن الحديث صريح." }, { text: "حُسن الخُلُق", isCorrect: true, rationale: "قال ﷺ: (ما من شيء أثقل في الميزان من حسن الخلق)." }, { text: "الصوم", isCorrect: false, rationale: "فضله بينه أحاديث أخرى." } ] },
+            { id: 18, category: "مكانة الأخلاق", difficulty: "متوسط", page: "ص 9", priority: false, hint: "أجر صاحب الخلق", question: "إن المؤمن ليدرك بحسن خلقه درجة (.....).", options: [ { text: "الشهيد", isCorrect: false, rationale: "نص الحديث يختلف." }, { text: "الصائم القائم", isCorrect: true, rationale: "ينال منزلة الصائم القائم بحسن خلقه." }, { text: "الغني الشاكر", isCorrect: false, rationale: "حديث آخر." }, { text: "العالم العامل", isCorrect: false, rationale: "حديث آخر." } ] },
+            { id: 19, category: "مكانة الأخلاق", difficulty: "صعب", page: "ص 9", priority: true, hint: "هل يكفي الخلق عن التوحيد؟", question: "هل حسن الخلق يغني عن توحيد الله تعالى وفروض العبادات؟", options: [ { text: "نعم، لأن الدين المعاملة", isCorrect: false, rationale: "المعاملة جزء ولا تلغي التوحيد." }, { text: "لا، فلا يتحقق الإيمان إن لم يؤد الفرائض ويوحد الله", isCorrect: true, rationale: "نص المقرر أن حسن الخلق لا يغني عن التوحيد والفرائض." }, { text: "نعم في المجتمعات الغربية فقط", isCorrect: false, rationale: "الإسلام دين عالمي." }, { text: "لا، إلا إذا كان مسلماً بالاسم فقط", isCorrect: false, rationale: "غير دقيق." } ] },
+            { id: 20, category: "مكانة الأخلاق", difficulty: "سهل", page: "ص 9", priority: true, hint: "البر وما يقابله", question: "كيف عرّف النبي ﷺ البر في حديث النواس بن سمعان؟", options: [ { text: "كثرة الصيام", isCorrect: false, rationale: "لم ينص عليه." }, { text: "حسن الخلق", isCorrect: true, rationale: "قال ﷺ: (البر حسن الخلق)." }, { text: "بر الوالدين فقط", isCorrect: false, rationale: "هو جزء من البر." }, { text: "الصدقة الجارية", isCorrect: false, rationale: "ليست نص الحديث." } ] },
+            { id: 21, category: "مكانة الأخلاق", difficulty: "متوسط", page: "ص 9", priority: false, hint: "ما يحاك في الصدر", question: "ما هو تعريف (الإثم) كما جاء في الأحاديث الواردة في المقرر؟", options: [ { text: "ما أمرت به الشريعة", isCorrect: false, rationale: "هذا الواجب." }, { text: "ما حاك في نفسك وكرهت أن يطلع عليه الناس", isCorrect: true, rationale: "الإثم يسبب قلقاً وخوفاً من اطلاع الناس عليه للفطر السليمة." }, { text: "التجارة بالربا فقط", isCorrect: false, rationale: "هو جزء من الإثم." }, { text: "التحدث بصوت مرتفع", isCorrect: false, rationale: "ليس بالضرورة إثماً." } ] },
+            { id: 22, category: "مكانة الأخلاق", difficulty: "صعب", page: "ص 9-10", priority: true, hint: "حديث المفلس", question: "بحسب حديث (المفلس يوم القيامة)، ماذا يحدث لمن يأتي بعبادات عظيمة ولكنه ظلم الناس وأساء أخلاقه؟", options: [ { text: "تغفر له سيئاته بسبب صلاته", isCorrect: false, rationale: "العبادات لا تكفر المظالم." }, { text: "يؤخذ من حسناته للمظلومين، فإن فنيت أخذ من سيئاتهم فطرحت عليه", isCorrect: true, rationale: "هذا هو الإفلاس الحقيقي بضياع الحسنات نتيجة سوء الخلق والمظالم." }, { text: "يعاقب في القبر فقط", isCorrect: false, rationale: "العقاب في الآخرة." }, { text: "يدخل الجنة مباشرة برحمة الله", isCorrect: false, rationale: "حقوق العباد لا تسقط." } ] },
+            { id: 23, category: "مكانة الأخلاق", difficulty: "سهل", page: "ص 8", priority: false, hint: "الآيات القرآنية", question: "نهى لقمان ابنه عن الكبر وسوء الخلق قائلاً: (ولا تصعر ... للناس)", options: [ { text: "يدك", isCorrect: false, rationale: "ليس الآية." }, { text: "خدك", isCorrect: true, rationale: "قال تعالى: (ولا تصعر خدك للناس)." }, { text: "وجهك", isCorrect: false, rationale: "التعبير القرآني: خدك." }, { text: "عينك", isCorrect: false, rationale: "الآية: خدك." } ] },
+            { id: 24, category: "مكانة الأخلاق", difficulty: "متوسط", page: "ص 9", priority: false, hint: "إتباع السيئة الحسنة", question: "قال ﷺ: (اتق الله حيثما كنت، وأتبع السيئة الحسنة تمحها، و....)", options: [ { text: "صم رمضان", isCorrect: false, rationale: "ليس تتمة الحديث." }, { text: "تصدق بمالك", isCorrect: false, rationale: "ليس التتمة." }, { text: "خالق الناس بخلق حسن", isCorrect: true, rationale: "نص الحديث يربط بين التقوى ومحو السيئات وحسن الخلق." }, { text: "أقم الصلاة", isCorrect: false, rationale: "ليس التتمة." } ] },
+
+            // Sources of Ethics
+            { id: 25, category: "أسس الأخلاق", difficulty: "سهل", page: "ص 10", priority: true, hint: "عدد الأسس", question: "إلى كم أساس أو مصدر تستند الأخلاق في الإسلام حسب المقرر؟", options: [ { text: "مصدرين", isCorrect: false, rationale: "أكثر من ذلك." }, { text: "أربعة مصادر", isCorrect: true, rationale: "الفطري، العقلي، التعليمي المكتسب، الإيماني الجزائي." }, { text: "خمسة مصادر", isCorrect: false, rationale: "هم أربعة." }, { text: "مصدر واحد (القرآن فقط)", isCorrect: false, rationale: "هناك أسس فطرية وعقلية معتبرة بالشرع." } ] },
+            { id: 26, category: "أسس الأخلاق", difficulty: "متوسط", page: "ص 10", priority: true, hint: "ميل النفس للخير", question: "خلق الله الناس على طبيعة تميل إلى مكارم الأخلاق وتنفر من رذائلها، هذا يمثل المصدر:", options: [ { text: "الإيماني", isCorrect: false, rationale: "هذا مرتبط بالفطرة." }, { text: "التعليمي", isCorrect: false, rationale: "التعليم يأتي لاحقاً." }, { text: "الفطري", isCorrect: true, rationale: "الفطرة السليمة تميل للخير كما قرر الإسلام." }, { text: "العقلي", isCorrect: false, rationale: "العقل يدرك، والفطرة تميل وتندفع." } ] },
+            { id: 27, category: "أسس الأخلاق", difficulty: "صعب", page: "ص 10", priority: false, hint: "توجيه الضمير", question: "ما الذي قد يُخفت دافع الضمير الفطري لدى الإنسان؟", options: [ { text: "كثرة التعلم", isCorrect: false, rationale: "التعلم يزكيه." }, { text: "إذا لم يكن منطلقاً من دافع إيماني ومراقبة لله تعالى", isCorrect: true, rationale: "المسؤولية الوجدانية قد تخبو إن لم تدعم بدافع إيماني قوي." }, { text: "قراءة القرآن", isCorrect: false, rationale: "هذا يحييه." }, { text: "الفقر المدقع", isCorrect: false, rationale: "ليس السبب الرئيسي المذكور." } ] },
+            { id: 28, category: "أسس الأخلاق", difficulty: "متوسط", page: "ص 10", priority: true, hint: "حديث أشج عبد القيس", question: "ما الخصلتان اللتان قال النبي ﷺ لأشج عبد القيس أن الله جبله عليهما (خلقه عليهما)؟", options: [ { text: "الكرم والشجاعة", isCorrect: false, rationale: "ليست في هذا الحديث." }, { text: "الحلم والأناة", isCorrect: true, rationale: "قال: بل الله جبلك عليهما (الحلم والأناة)." }, { text: "الصدق والأمانة", isCorrect: false, rationale: "حديث آخر." }, { text: "الحياء والعفة", isCorrect: false, rationale: "ليست في حديث الأشج." } ] },
+            { id: 29, category: "أسس الأخلاق", difficulty: "متوسط", page: "ص 10", priority: false, hint: "تفاوت الناس", question: "الناس يتفاوتون في الأخلاق الفطرية، والدليل قوله ﷺ: (الناس .... كمعادن الذهب والفضة).", options: [ { text: "جواهر", isCorrect: false, rationale: "اللفظ: معادن." }, { text: "معادن", isCorrect: true, rationale: "قال ﷺ: الناس معادن كمعادن الذهب والفضة." }, { text: "طبائع", isCorrect: false, rationale: "اللفظ: معادن." }, { text: "أجناس", isCorrect: false, rationale: "اللفظ: معادن." } ] },
+            { id: 30, category: "أسس الأخلاق", difficulty: "سهل", page: "ص 11", priority: true, hint: "عند التباس الأمور", question: "عندما تلتبس الأمور على الحس والضمير الفطري بسبب الأهواء، ما هو التوجيه النبوي المنجي؟", options: [ { text: "إتباع هوى النفس", isCorrect: false, rationale: "الهوى مُضل." }, { text: "تقليد الأكثرية", isCorrect: false, rationale: "الكثرة ليست معياراً." }, { text: "اتقاء الشبهات (استبراءً للدين والعرض)", isCorrect: true, rationale: "قال ﷺ: فمن اتقى الشبهات استبرأ لدينه وعرضه." }, { text: "تجاهل الأمر تماماً", isCorrect: false, rationale: "يجب استبراء الدين." } ] },
+            { id: 31, category: "أسس الأخلاق", difficulty: "سهل", page: "ص 11", priority: false, hint: "الاستحسان والرفض الإدراكي", question: "يستحسن (.....) السليم مكارم الأخلاق ويؤيدها، ويرفض رذائلها إلا إذا شابه انحراف.", options: [ { text: "البصر", isCorrect: false, rationale: "الإدراك لا يكون بالبصر فقط." }, { text: "العقل", isCorrect: true, rationale: "المصدر العقلي: العقل السليم يستحسن المكارم ويرفض الرذائل." }, { text: "المجتمع", isCorrect: false, rationale: "المجتمع قد ينحرف." }, { text: "الصديق", isCorrect: false, rationale: "ليس دقيقاً." } ] },
+            { id: 32, category: "أسس الأخلاق", difficulty: "متوسط", page: "ص 11", priority: true, hint: "ارتباط التكليف بالقدرة", question: "لو لم تكن الأخلاق قابلة للاكتساب والتعلم، لكان في ذلك منافاة لـ:", options: [ { text: "أصل الابتلاء والتكليف", isCorrect: true, rationale: "لأن الله لا يكلف نفساً إلا وسعها، فلو لم نتمكن من اكتسابها لما كلفنا بها." }, { text: "القدر المحتوم", isCorrect: false, rationale: "التكليف هو المرتبط بالاستطاعة." }, { text: "حرية التجارة", isCorrect: false, rationale: "لا علاقة له." }, { text: "الفطرة السليمة", isCorrect: false, rationale: "بل ينافي التكليف." } ] },
+            { id: 33, category: "أسس الأخلاق", difficulty: "متوسط", page: "ص 11", priority: false, hint: "وظيفة الأنبياء", question: "الآية (ويزكيهم ويعلمهم الكتاب والحكمة) تدل على أي مصدر من مصادر الأخلاق؟", options: [ { text: "الفطري", isCorrect: false, rationale: "التزكية والتعليم أمور مكتسبة." }, { text: "التعليمي المكتسب", isCorrect: true, rationale: "تدل على أن الأخلاق تكتسب بالتعليم والتزكية." }, { text: "الإيماني", isCorrect: false, rationale: "الآية تركز على التعليم والتزكية (المكتسب)." }, { text: "العقلي", isCorrect: false, rationale: "لا تتحدث عن العقل." } ] },
+            { id: 34, category: "أسس الأخلاق", difficulty: "متوسط", page: "ص 12", priority: true, hint: "الدافع الأعظم للمسلم", question: "ما هو المصدر (الأصل) للأخلاق الذي يجعل المسلم يراقب الله ويتطلع للثواب؟", options: [ { text: "المصدر الفطري", isCorrect: false, rationale: "الجميع يشترك فيه." }, { text: "المصدر التعليمي", isCorrect: false, rationale: "وسيلة اكتساب." }, { text: "المصدر الإيماني الجزائي", isCorrect: true, rationale: "مراقبة الله وانتظار الثواب هو المصدر الإيماني الجزائي، وهو الأساس للمسلم." }, { text: "المصدر العقلي", isCorrect: false, rationale: "العقل يدرك فقط." } ] },
+            { id: 35, category: "أسس الأخلاق", difficulty: "سهل", page: "ص 12", priority: false, hint: "آية سورة آل عمران", question: "من صفات المتقين في القرآن (والكاظمين الغيظ والعافين عن الناس)، وهذا يمثل المصدر:", options: [ { text: "الإيماني الجزائي", isCorrect: true, rationale: "لأنها رتبت على ذلك الجنة والمغفرة (جزاء)." }, { text: "العقلي المحض", isCorrect: false, rationale: "العقل لا يضمن الجنة." }, { text: "التعليمي فقط", isCorrect: false, rationale: "السياق سياق ثواب." }, { text: "البيئي", isCorrect: false, rationale: "ليس من المصادر المذكورة." } ] },
+
+            // Characteristics of Ethics
+            { id: 36, category: "خصائص الأخلاق", difficulty: "سهل", page: "ص 12", priority: true, hint: "من أين نأخذ الأخلاق؟", question: "من خصائص الأخلاق الإسلامية (ربانية المصدر)، ماذا تعني؟", options: [ { text: "أنها مستمدة من كتاب الله وسنة رسوله", isCorrect: true, rationale: "تستمد مشروعيتها من الوحي، وليست من وضع البشر الخالص." }, { text: "أنها خاصة بالملائكة", isCorrect: false, rationale: "بل هي للمكلفين." }, { text: "أنها تتغير حسب المصلحة", isCorrect: false, rationale: "هذا يعارض الثبات." }, { text: "أنها مستمدة من العادات التقاليد", isCorrect: false, rationale: "العادات ليست مصدراً ربانياً." } ] },
+            { id: 37, category: "خصائص الأخلاق", difficulty: "متوسط", page: "ص 12", priority: true, hint: "علاقة الأخلاق بالدين", question: "قوله ﷺ: (لا إيمان لمن لا أمانة له) يدل على أي خاصية من خصائص الأخلاق؟", options: [ { text: "الشمول", isCorrect: false, rationale: "الشمول يعني الاتساع." }, { text: "الارتباط الوثيق بين الأخلاق والعقيدة", isCorrect: true, rationale: "الأمانة (خلق) رُبطت بنفي كمال الإيمان (عقيدة)." }, { text: "الوسطية", isCorrect: false, rationale: "لا يظهر التوازن هنا." }, { text: "الثبات", isCorrect: false, rationale: "ليس السياق." } ] },
+            { id: 38, category: "خصائص الأخلاق", difficulty: "صعب", page: "ص 13", priority: false, hint: "أثر معرفة الأسماء الحسنى", question: "الإيمان بأسماء الله الحسنى كالرقيب والحسيب يوجب على العبد الحياء ومحاسن الأخلاق. هذا يدل على ارتباط الأخلاق بـ:", options: [ { text: "العبادات", isCorrect: false, rationale: "هذا يخص العقيدة (توحيد الأسماء والصفات)." }, { text: "الدعوة", isCorrect: false, rationale: "ليست دعوة للغير." }, { text: "العقيدة", isCorrect: true, rationale: "معرفة الله وأسمائه من صميم العقيدة وتثمر الأخلاق." }, { text: "المعاملات المالية", isCorrect: false, rationale: "أعم من ذلك." } ] },
+            { id: 39, category: "خصائص الأخلاق", difficulty: "متوسط", page: "ص 13", priority: true, hint: "إن الصلاة تنهى عن...", question: "ارتباط الأخلاق بـ (العبادات) يظهر جلياً في قوله تعالى:", options: [ { text: "إن الصلاة تنهى عن الفحشاء والمنكر", isCorrect: true, rationale: "الصلاة عبادة تثمر البعد عن مساوئ الأخلاق." }, { text: "وقولوا للناس حسنا", isCorrect: false, rationale: "أمر مجرد بالخلق." }, { text: "خذ من أموالهم صدقة", isCorrect: false, rationale: "تتحدث عن الزكاة لكن الشاهد الأقوى للفحشاء هو الصلاة." }, { text: "يا أيها الذين آمنوا اتقوا الله", isCorrect: false, rationale: "عامة." } ] },
+            { id: 40, category: "خصائص الأخلاق", difficulty: "سهل", page: "ص 13", priority: false, hint: "الزكاة والصيام", question: "كيف ترتبط الزكاة بالأخلاق؟", options: [ { text: "بأنها تطهر النفس وتزكيها", isCorrect: true, rationale: "قال تعالى: (خذ من أموالهم صدقة تطهرهم وتزكيهم بها)." }, { text: "بأنها تعلم الصبر على الجوع", isCorrect: false, rationale: "هذا الصيام." }, { text: "بأنها تنمي القوة البدنية", isCorrect: false, rationale: "لا علاقة." }, { text: "بأنها تمنع الجدال", isCorrect: false, rationale: "هذا الحج." } ] },
+            { id: 41, category: "خصائص الأخلاق", difficulty: "متوسط", page: "ص 13", priority: true, hint: "أثر الأخلاق في غير البشر", question: "قال ﷺ: (إذا قتلتم فأحسنوا القِتلة، وإذا ذبحتم فأحسنوا الذِبحَة)، هذا دليل على:", options: [ { text: "ضعف الحيوان", isCorrect: false, rationale: "المقصد هو إظهار خلق الإحسان." }, { text: "ارتباط الأخلاق بالمعاملات حتى مع غير البشر", isCorrect: true, rationale: "أمر بالإحسان في كل شيء، حتى عند ذبح الحيوان." }, { text: "أهمية أكل اللحوم", isCorrect: false, rationale: "ليس الهدف التربوي." }, { text: "صعوبة الذبح", isCorrect: false, rationale: "ليس المعنى." } ] },
+            { id: 42, category: "خصائص الأخلاق", difficulty: "صعب", page: "ص 14", priority: true, hint: "قصة خديجة", question: "ما الذي استدلت به خديجة (رضي الله عنها) على أن الله لن يخزي النبي ﷺ أبداً؟", options: [ { text: "كثرة صلاته في غار حراء", isCorrect: false, rationale: "استدلت بأصول مكارم الأخلاق (التعامل مع الناس)." }, { text: "أصول مكارم الأخلاق لديه (صلة الرحم، كسب المعدوم...)", isCorrect: true, rationale: "تيقنت استحالة خزي من يحمل هذه المكارم العظيمة للخلق." }, { text: "نسبه الشريف في قريش", isCorrect: false, rationale: "النسب لا يعصم من البلاء لذاته." }, { text: "ثروته وتجارته", isCorrect: false, rationale: "لم تستدل بالمال." } ] },
+            { id: 43, category: "خصائص الأخلاق", difficulty: "متوسط", page: "ص 14", priority: false, hint: "قصة جبل الصفا", question: "عندما جهر النبي ﷺ بالدعوة على جبل الصفا، وسأل قومه إن كانوا يصدقونه، أجابوا: (ما جربنا عليك إلا صدقاً)، يدل ذلك على ارتباط الأخلاق بـ:", options: [ { text: "العبادة", isCorrect: false, rationale: "ليس سياق عبادة." }, { text: "العقيدة", isCorrect: false, rationale: "الدعوة للعقيدة لكن السياق وسيلة تبليغ." }, { text: "الدعوة إلى الله", isCorrect: true, rationale: "رصيد الداعية من حسن الخلق أدعى لقبول دعوته." }, { text: "الثبات", isCorrect: false, rationale: "السمة هي تأثير الأخلاق في الدعوة." } ] },
+            { id: 44, category: "خصائص الأخلاق", difficulty: "سهل", page: "ص 15", priority: true, hint: "تشمل كل شيء", question: "الأخلاق في الإسلام تشمل علاقة الإنسان بخالقه، وبنفسه، وببني جنسه، وبالمخلوقات الأخرى، تُعرف هذه الخاصية بـ:", options: [ { text: "الشمول", isCorrect: true, rationale: "تشمل كل مجالات الحياة والدوائر المحيطة بالإنسان." }, { text: "الثبات", isCorrect: false, rationale: "الثبات يعني عدم التغير." }, { text: "الوسطية", isCorrect: false, rationale: "الوسطية تعني التوازن." }, { text: "الربانية", isCorrect: false, rationale: "الربانية تتعلق بالمصدر." } ] },
+            { id: 45, category: "خصائص الأخلاق", difficulty: "متوسط", page: "ص 15", priority: false, hint: "الغاية الحقيقية", question: "هل الأخلاق في الإسلام أخلاق (نفعية) مادية بحتة؟", options: [ { text: "نعم، لتحقيق مصالح الدنيا فقط", isCorrect: false, rationale: "هذا في الحضارات الأخرى." }, { text: "لا، غايتها العظمى تحقيق العبودية لله واكتساب مرضاته", isCorrect: true, rationale: "من خصائصها ابتغاء وجه الله وتحقيق العبودية وليست نفعية بحتة." }, { text: "نعم، لتجنب عقوبات القانون", isCorrect: false, rationale: "الضمير أعمق من القانون." }, { text: "لا، لأنها فطرية فقط", isCorrect: false, rationale: "بل لأن لها غاية تعبدية." } ] },
+            { id: 46, category: "خصائص الأخلاق", difficulty: "سهل", page: "ص 15", priority: true, hint: "التوازن", question: "الاعتدال بين حظوظ الدنيا والآخرة يمثل أي خاصية من خصائص الأخلاق الإسلامية؟", options: [ { text: "الوسطية والاعتدال", isCorrect: true, rationale: "جاء الإسلام وسطاً يوازن بين الفرد والجماعة وحقوق الخالق والمخلوق." }, { text: "الثبات", isCorrect: false, rationale: "الثبات يخص المعايير." }, { text: "ربانية المصدر", isCorrect: false, rationale: "يخص التشريع." }, { text: "الشمول", isCorrect: false, rationale: "يخص الاتساع." } ] },
+            { id: 47, category: "خصائص الأخلاق", difficulty: "صعب", page: "ص 15", priority: false, hint: "اليهود والنصارى", question: "جاء الإسلام وسطاً في الأخلاق بين من أسرفوا في عبادة المال، ومن ابتدعوا رهبانية وعزلة. من هم؟", options: [ { text: "اليهود (رهبانية) والنصارى (مال)", isCorrect: false, rationale: "معكوسة." }, { text: "اليهود (المال) والنصارى (الرهبانية العزلة)", isCorrect: true, rationale: "وفقاً للمقرر، اليهود أسرفوا بالمال، والنصارى بالرهبانية." }, { text: "الصابئة والمجوس", isCorrect: false, rationale: "لم تذكر." }, { text: "المشركين والمنافقين", isCorrect: false, rationale: "لم تذكر بهذا السياق." } ] },
+            { id: 48, category: "خصائص الأخلاق", difficulty: "متوسط", page: "ص 15-16", priority: true, hint: "تغير الزمان", question: "ما معنى خاصية (الثبات) في الأخلاق الإسلامية؟", options: [ { text: "التمسك برأي واحد في الفقه", isCorrect: false, rationale: "الفقه يتسع للخلاف." }, { text: "عدم تغير وتَبَدُّل المعايير الأخلاقية (الفضيلة والرذيلة) باختلاف الزمان والمكان", isCorrect: true, rationale: "الصدق فضيلة دائماً، والكذب رذيلة دائماً، بخلاف النسبية المادية." }, { text: "الوقوف في المعارك بصلابة", isCorrect: false, rationale: "هذا خلق الشجاعة." }, { text: "عدم السفر والترحال", isCorrect: false, rationale: "فهم خاطئ للثبات." } ] },
+            { id: 49, category: "خصائص الأخلاق", difficulty: "صعب", page: "ص 16", priority: false, hint: "الفرق بين الإسلام والمادية", question: "في المدارس الأخلاقية (المادية)، قد يصبح الكذب خلقاً حسناً غداً إذا حقق مصلحة. ما الخاصية التي تمنع ذلك في الإسلام؟", options: [ { text: "الشمول", isCorrect: false, rationale: "لا يمنع التغير بذاته." }, { text: "الثبات", isCorrect: true, rationale: "الثبات يمنع انقلاب الفضيلة لرذيلة أو العكس." }, { text: "تحقيق العبودية", isCorrect: false, rationale: "هي الغاية." }, { text: "الوسطية", isCorrect: false, rationale: "هي التوازن." } ] },
+            { id: 50, category: "خصائص الأخلاق", difficulty: "متوسط", page: "ص 16", priority: true, hint: "حماية المجتمع", question: "لماذا شُرعت العقوبات الدنيوية (كالحدود والقصاص) في الإسلام؟", options: [ { text: "للانتقام والتشفي", isCorrect: false, rationale: "الإسلام ينبذ ذلك." }, { text: "درءاً للمخاطر، وحفاظاً على الأخلاق الحميدة من الضياع عند من لا تردعه المواعظ", isCorrect: true, rationale: "شرعت كضرورة لحماية المجتمع وأخلاقه حين لا تؤثر القوارع الإيمانية." }, { text: "لإلغاء دور الضمير الفطري", isCorrect: false, rationale: "الحدود لا تلغي الضمير بل تسنده." }, { text: "لجمع الأموال لخزينة الدولة", isCorrect: false, rationale: "ليس الغرض من الحدود." } ] },
+
+            // Truthfulness (الصدق)
+            { id: 51, category: "الصدق", difficulty: "سهل", page: "ص 17", priority: true, hint: "خلاف الكذب", question: "ما معنى (الصدق) في اللغة؟", options: [ { text: "الضعف والاستكانة", isCorrect: false, rationale: "هذا الخور." }, { text: "قوة في الشيء، وهو خلاف الكذب", isCorrect: true, rationale: "لأن الكذب لا قوة له." }, { text: "كثرة الكلام", isCorrect: false, rationale: "الثرثرة." }, { text: "السرعة في العمل", isCorrect: false, rationale: "العجلة." } ] },
+            { id: 52, category: "الصدق", difficulty: "متوسط", page: "ص 17", priority: true, hint: "الراغب الأصفهاني", question: "كيف عرّف (الراغب) الصدق اصطلاحاً؟", options: [ { text: "قول الحق عند الغضب", isCorrect: false, rationale: "هذا جزء من الحلم." }, { text: "مطابقة القول للضمير والمخبر عنه معاً", isCorrect: true, rationale: "يجب أن يطابق القول الواقع (المخبر عنه) وما في القلب (الضمير)." }, { text: "إفشاء أسرار الناس", isCorrect: false, rationale: "هذه خيانة ونميمة." }, { text: "التزام الصمت", isCorrect: false, rationale: "هذا سكوت." } ] },
+            { id: 53, category: "الصدق", difficulty: "صعب", page: "ص 17", priority: false, hint: "توافق الباطن والظاهر", question: "قيل في الصدق: استواء السر والعلانية، بألا تُكَذِّبَ أحوال العبد أعماله. هذا يدل على أن الصدق يشمل:", options: [ { text: "القول فقط", isCorrect: false, rationale: "أوسع من ذلك." }, { text: "العمل فقط", isCorrect: false, rationale: "أوسع." }, { text: "القول والعمل والحال (النية)", isCorrect: true, rationale: "الصدق شامل لحياة الإنسان كلها." }, { text: "المعاملات المالية فقط", isCorrect: false, rationale: "أوسع بكثير." } ] },
+            { id: 54, category: "الصدق", difficulty: "سهل", page: "ص 17", priority: true, hint: "إلى أين يهدي الصدق؟", question: "في الحديث الشريف: (عليكم بالصدق فإن الصدق يهدي إلى ...)", options: [ { text: "الغنى", isCorrect: false, rationale: "لم يرد بالحديث." }, { text: "البر", isCorrect: true, rationale: "وإن البر يهدي إلى الجنة." }, { text: "الراحة", isCorrect: false, rationale: "وإن كانت صحيحة معنى، لكن اللفظ: البر." }, { text: "القوة", isCorrect: false, rationale: "اللفظ: البر." } ] },
+            { id: 55, category: "الصدق", difficulty: "متوسط", page: "ص 18", priority: false, hint: "ألقاب الأنبياء", question: "وصف الله تعالى في القرآن عدداً من الأنبياء بـ (الصدّيقية) منهم:", options: [ { text: "إبراهيم وإدريس عليهما السلام", isCorrect: true, rationale: "قال تعالى: (واذكر في الكتاب إبراهيم إنه كان صديقا نبيا)، وكذلك إدريس." }, { text: "يونس وأيوب عليهما السلام", isCorrect: false, rationale: "لم يرد النص بالصديقية في المقرر لهما." }, { text: "داود وسليمان عليهما السلام", isCorrect: false, rationale: "لم يذكر في المقرر هنا." }, { text: "لوط وهود عليهما السلام", isCorrect: false, rationale: "لم يذكر." } ] },
+            { id: 56, category: "الصدق", difficulty: "سهل", page: "ص 18", priority: true, hint: "لقب النبي", question: "اشتهر النبي ﷺ بصفة الصدق حتى قبل البعثة وكان يلقب بـ:", options: [ { text: "الحليم العفو", isCorrect: false, rationale: "كان كذلك، لكن اللقب المشهور مختلف." }, { text: "الصادق الأمين", isCorrect: true, rationale: "عُرف واشتهر به بين الناس." }, { text: "القوي الشجاع", isCorrect: false, rationale: "كان كذلك لكن ليس اللقب." }, { text: "العادل المنصف", isCorrect: false, rationale: "ليس اللقب الأشهر بمكة." } ] },
+            { id: 57, category: "الصدق", difficulty: "متوسط", page: "ص 19", priority: true, hint: "طمأنينة وريبة", question: "قال النبي ﷺ: (دع ما يريبك إلى ما لا يريبك، فإن الصدق ........ والكذب .......)", options: [ { text: "طمأنينة / ريبة", isCorrect: true, rationale: "الصدق يورث راحة القلب، والكذب يورث الشك والقلق." }, { text: "نور / ظلام", isCorrect: false, rationale: "ليس لفظ الحديث." }, { text: "نجاة / هلاك", isCorrect: false, rationale: "وإن كان صحيحاً في المعنى، لكن اللفظ طمأنينة وريبة." }, { text: "صعب / سهل", isCorrect: false, rationale: "غير صحيح." } ] },
+            { id: 58, category: "الصدق", difficulty: "متوسط", page: "ص 19", priority: false, hint: "أثر الصدق في التجارة", question: "ما هو أثر الصدق في البيع والشراء كما ورد في الحديث (فإن صدقا وبينا...)؟", options: [ { text: "زادت أرباحهما المالية نقداً", isCorrect: false, rationale: "البركة ليست مجرد زيادة أرقام." }, { text: "بورك لهما في بيعهما", isCorrect: true, rationale: "وإن كتما وكذبا محقت بركة بيعهما." }, { text: "أصبحا من الأثرياء فوراً", isCorrect: false, rationale: "مبالغة غير صحيحة." }, { text: "تجنبا الخسارة المطلقة", isCorrect: false, rationale: "النص على (البركة)." } ] },
+            { id: 59, category: "الصدق", difficulty: "سهل", page: "ص 19", priority: true, hint: "آية المنافق", question: "من صفات المنافقين التي حذر منها الإسلام وتنافي الصدق:", options: [ { text: "الفقر", isCorrect: false, rationale: "ليس صفة نفاق." }, { text: "إذا حدث كذب", isCorrect: true, rationale: "آية المنافق ثلاث: إذا حدث كذب..." }, { text: "النسيان", isCorrect: false, rationale: "طبيعة بشرية." }, { text: "قلة الكلام", isCorrect: false, rationale: "قد تكون حكمة." } ] },
+            { id: 60, category: "الصدق", difficulty: "صعب", page: "ص 19", priority: true, hint: "أشد أنواع الكذب", question: "ما هو أفحش أنواع الكذب وأعظمها خطراً على الإطلاق؟", options: [ { text: "الكذب على الأصدقاء المقربين", isCorrect: false, rationale: "عظيم، لكن ليس الأفحش." }, { text: "الكذب التجاري لترويج السلع", isCorrect: false, rationale: "كبيرة، لكن هناك ما هو أعظم." }, { text: "الكذب على الله عز وجل أو رسوله ﷺ", isCorrect: true, rationale: "من كذب علي متعمدا فليتبوأ مقعده من النار، والتكذيب بآيات الله." }, { text: "شهادة الزور في المحكمة", isCorrect: false, rationale: "من الكبائر العظمى، لكن الكذب على الله أعظم." } ] },
+            { id: 61, category: "الصدق", difficulty: "متوسط", page: "ص 20", priority: false, hint: "المزاح الكاذب", question: "حذر النبي ﷺ من اختلاق الكذب بغرض إضحاك الناس فقال: (ويل للذي يحدث بالحديث ليضحك به القوم فيكذب...)", options: [ { text: "ويل له ويل له", isCorrect: true, rationale: "كررها النبي للترهيب الشديد." }, { text: "لا بأس إن كان مزاحاً", isCorrect: false, rationale: "الكذب محرم حتى في المزاح." }, { text: "عليه كفارة إطعام", isCorrect: false, rationale: "لم تشرع كفارة معينة بل توعده بالويل." }, { text: "لا تقبل شهادته", isCorrect: false, rationale: "تتعلق بالحديث المذكور التوعد بالويل." } ] },
+            { id: 62, category: "الصدق", difficulty: "متوسط", page: "ص 20", priority: true, hint: "نقل الشائعات", question: "كيف عالج الإسلام التسرع في نقل الأخبار (الشائعات) حماية للصدق؟", options: [ { text: "بأمر المسلم بنقل كل ما يسمع ليكون شفافاً", isCorrect: false, rationale: "هذا عين الخطأ." }, { text: "بالأمر بالتثبت، وقال ﷺ: (كفى بالمرء كذباً أن يُحدث بكل ما سمع)", isCorrect: true, rationale: "التثبت واجب (إن جاءكم فاسق بنبأ فتبينوا)." }, { text: "بمنع التحدث بين الناس نهائياً", isCorrect: false, rationale: "تطرف غير واقعي." }, { text: "بتصديق الأخبار الإيجابية فقط", isCorrect: false, rationale: "يجب التثبت من الكل." } ] },
+
+            // Forbearance (الحلم)
+            { id: 63, category: "الحلم", difficulty: "سهل", page: "ص 20", priority: false, hint: "عدم العجلة", question: "ما معنى الحِلْمُ في اللغة؟", options: [ { text: "الرؤيا أثناء النوم", isCorrect: false, rationale: "تلك حُلُم بضم اللام." }, { text: "ترك العجلة", isCorrect: true, rationale: "مأخوذة من (ح ل م) وتدل على ترك العجلة." }, { text: "الشجاعة المفرطة", isCorrect: false, rationale: "هذا التهور." }, { text: "البكاء الشديد", isCorrect: false, rationale: "لا علاقة لها." } ] },
+            { id: 64, category: "الحلم", difficulty: "متوسط", page: "ص 20", priority: true, hint: "ضبط النفس", question: "ما هو التعريف الاصطلاحي للحِلْم؟", options: [ { text: "الخوف من الأعداء والهروب", isCorrect: false, rationale: "هذا جبن." }, { text: "ضبط النفس عند شدة الغضب وترك الانتقام مع القدرة عليه", isCorrect: true, rationale: "العفو عند المقدرة والسيطرة على الغضب." }, { text: "السكوت دائماً حتى عن الحق", isCorrect: false, rationale: "هذا ضعف." }, { text: "العفو عند العجز عن الرد", isCorrect: false, rationale: "الحلم يشترط القدرة على الرد." } ] },
+            { id: 65, category: "الحلم", difficulty: "متوسط", page: "ص 20", priority: true, hint: "ارتباط باسم الله", question: "وصف الله سبحانه وتعالى نفسه بـ (الحليم)، وغالباً ما تقترن هذه الصفة في القرآن بصفات أخرى مثل:", options: [ { text: "الجبار والمنتقم", isCorrect: false, rationale: "هذه صفات وعيد." }, { text: "المغفرة والعلم والغنى والشكر", isCorrect: true, rationale: "مثل: غفور حليم، عليم حليم، شكور حليم." }, { text: "القوي والمتين", isCorrect: false, rationale: "لا تقترن عادة بالحلم." }, { text: "الخالق والبارئ", isCorrect: false, rationale: "لا تقترن مباشرة." } ] },
+            { id: 66, category: "الحلم", difficulty: "متوسط", page: "ص 21", priority: false, hint: "غليظ الحاشية", question: "كيف تصرف النبي ﷺ مع الأعرابي الذي جبذ رداءه بقوة حتى أثّر في عاتقه طالباً المال؟", options: [ { text: "عاقبه وحبسه", isCorrect: false, rationale: "لم يعاقبه." }, { text: "غضب ووبخه أمام الصحابة", isCorrect: false, rationale: "لم يغضب لنفسه." }, { text: "التفت إليه وضحك ثم أمر له بعطاء", isCorrect: true, rationale: "هذا من كمال حلمه ﷺ." }, { text: "تجاهله ومضى", isCorrect: false, rationale: "بل أعطاه." } ] },
+            { id: 67, category: "الحلم", difficulty: "سهل", page: "ص 21", priority: true, hint: "يملك نفسه", question: "بم عرّف النبي ﷺ القوي (الشديد) الحقيقي في الحديث الشريف؟", options: [ { text: "الشديد بالصُّرَعَة (الذي يغلب الرجال)", isCorrect: false, rationale: "نفى النبي ذلك." }, { text: "الشديد الذي يملك نفسه عند الغضب", isCorrect: true, rationale: "قوة الإرادة والتحكم بالنفس هي الشدة الحقيقية." }, { text: "الشديد الذي لا يمرض", isCorrect: false, rationale: "لا علاقة له." }, { text: "الشديد الذي يجمع المال", isCorrect: false, rationale: "لا علاقة له." } ] },
+            { id: 68, category: "الحلم", difficulty: "صعب", page: "ص 21-22", priority: false, hint: "متى يغضب النبي؟", question: "متى يكون الغضب محموداً (غير مذموم) كما ورد في سيرة النبي ﷺ؟", options: [ { text: "إذا كان انتقاماً لأمر شخصي", isCorrect: false, rationale: "هذا غضب مذموم." }, { text: "إذا غضب الله، أو إذا انتُهكت محارم الله تعالى", isCorrect: true, rationale: "النبي كان يغضب إذا انتهكت حرمات الله، كقصة تنزه أقوام عن رخصة." }, { text: "إذا فقد الإنسان ماله", isCorrect: false, rationale: "يجب الصبر." }, { text: "لا يوجد غضب محمود مطلقاً", isCorrect: false, rationale: "الغضب لله محمود." } ] },
+            { id: 69, category: "الحلم", difficulty: "متوسط", page: "ص 22", priority: true, hint: "كلمة تذهب الغضب", question: "ما هو العلاج القولي الذي أرشد إليه النبي ﷺ لمن اشتد غضبه؟", options: [ { text: "أن يرفع صوته بالصياح", isCorrect: false, rationale: "يزيد الغضب." }, { text: "أن يقول: أعوذ بالله من الشيطان الرجيم", isCorrect: true, rationale: "إني لأعلم كلمة لو قالها لذهب عنه ما يجد." }, { text: "أن يشكو همه للناس", isCorrect: false, rationale: "ليس العلاج النبوي الأول." }, { text: "أن يعاتب المخطئ بقوة", isCorrect: false, rationale: "قد يزيد المشكلة." } ] },
+            { id: 70, category: "الحلم", difficulty: "سهل", page: "ص 22", priority: true, hint: "تغيير الوضعية", question: "إذا غضب المسلم وهو (قائم)، فماذا أرشده النبي ﷺ أن يفعل كعلاج سلوكي؟", options: [ { text: "أن يمشي مسرعاً", isCorrect: false, rationale: "لم يرد." }, { text: "أن يجلس، فإن لم يذهب فليضطجع", isCorrect: true, rationale: "تغيير الهيئة يقلل من طاقة الغضب واحتمال الأذى." }, { text: "أن يأكل", isCorrect: false, rationale: "لم يرد." }, { text: "أن يغلق عينيه", isCorrect: false, rationale: "لم يرد." } ] },
+            { id: 71, category: "الحلم", difficulty: "صعب", page: "ص 22", priority: false, hint: "مقولة ابن القيم", question: "قال ابن القيم: 'دخل الناس النار من ثلاثة أبواب: شبهة أورثت شكاً، وشهوة أورثت تقديم الهوى، وباب ... أورث العدوان على خلقه'.", options: [ { text: "حسد", isCorrect: false, rationale: "لم يذكر الحسد هنا." }, { text: "طمع", isCorrect: false, rationale: "لم يذكر الطمع هنا." }, { text: "غضب", isCorrect: true, rationale: "الغضب يورث العدوان والظلم." }, { text: "بخل", isCorrect: false, rationale: "ليس الباب الثالث." } ] },
+
+            // Chastity (العفة)
+            { id: 72, category: "العفة", difficulty: "سهل", page: "ص 22-23", priority: true, hint: "الكف والمنع", question: "تعريف (العفّة) في اللغة:", options: [ { text: "الكف عن القبيح", isCorrect: true, rationale: "عف عن الشيء أي كف عنه وامتنع." }, { text: "الشجاعة والإقدام", isCorrect: false, rationale: "هذا الإقدام." }, { text: "التصدق بالمال", isCorrect: false, rationale: "هذا الجود." }, { text: "التزين والتجمل", isCorrect: false, rationale: "ليس العفة." } ] },
+            { id: 73, category: "العفة", difficulty: "متوسط", page: "ص 23", priority: true, hint: "ضبط النفس", question: "العفة اصطلاحاً تعني:", options: [ { text: "ضبط النفس عن الشهوات، واجتناب السرف في الملذات", isCorrect: true, rationale: "قصد الاعتدال وعدم الانجراف للشهوات المحرمة." }, { text: "الامتناع عن الزواج والعمل تماماً", isCorrect: false, rationale: "الإسلام ينبذ الرهبانية." }, { text: "الصوم المستمر طوال العام", isCorrect: false, rationale: "منهي عنه (صيام الدهر)." }, { text: "عدم التحدث مع الناس", isCorrect: false, rationale: "ليس عفة." } ] },
+            { id: 74, category: "العفة", difficulty: "متوسط", page: "ص 23", priority: false, hint: "آية سورة البقرة", question: "بم وصف الله تعالى الفقراء الذين لا يظهرون حاجتهم للناس تعففاً؟", options: [ { text: "يحسبهم الجاهل أغنياء من التعفف", isCorrect: true, rationale: "لشدة تعففهم وعدم سؤالهم الناس إلحافاً." }, { text: "يعرفون بفقرهم من ملابسهم", isCorrect: false, rationale: "عكس الآية." }, { text: "يسألون الناس إلحافا", isCorrect: false, rationale: "الآية نفت ذلك عنهم (لا يسألون الناس إلحافا)." }, { text: "يعتزلون الناس في الجبال", isCorrect: false, rationale: "لم يُذكر." } ] },
+            { id: 75, category: "العفة", difficulty: "صعب", page: "ص 23", priority: true, hint: "شمولية العفة", question: "هل العفة تقتصر فقط على (عفة الفرج) عن الحرام؟", options: [ { text: "نعم، هي المعنى الوحيد", isCorrect: false, rationale: "العفة أوسع." }, { text: "لا، بل تشمل عفة اللسان، وعفة أكل المال الحرام، وعفة النظر", isCorrect: true, rationale: "تشمل حفظ الجوارح واللسان عن الغيبة وأكل الحرام وسؤال الناس." }, { text: "تشمل الفرج واليد فقط", isCorrect: false, rationale: "تشمل اللسان والنظر أيضاً." }, { text: "تخص النساء فقط", isCorrect: false, rationale: "للرجال والنساء." } ] },
+            { id: 76, category: "العفة", difficulty: "سهل", page: "ص 23", priority: false, hint: "حديث الثلاثة", question: "قال ﷺ: (ثلاثة حق على الله عونهم: المجاهد، والمكاتب، و...)", options: [ { text: "التاجر الذي يريد الربح", isCorrect: false, rationale: "ليس منهم." }, { text: "الناكح الذي يريد العفاف", isCorrect: true, rationale: "من يتزوج طالباً العفة يعينه الله." }, { text: "المسافر لطلب العلم", isCorrect: false, rationale: "له فضل لكن الحديث حدد الثلاثة." }, { text: "الإمام العادل", isCorrect: false, rationale: "له فضل آخر." } ] },
+            { id: 77, category: "العفة", difficulty: "متوسط", page: "ص 24", priority: true, hint: "القدوة في العفة", question: "من هو النبي الذي ضرب أعظم الأمثلة في العفة رغم قوة الدوافع وإغراء ذات المنصب والجمال؟", options: [ { text: "إبراهيم عليه السلام", isCorrect: false, rationale: "ابتلي بالنار والذبح." }, { text: "موسى عليه السلام", isCorrect: false, rationale: "قصته مختلفة." }, { text: "يوسف عليه السلام", isCorrect: true, rationale: "قال (معاذ الله إنه ربي أحسن مثواي) وصبر على السجن إيثاراً للعفة." }, { text: "يونس عليه السلام", isCorrect: false, rationale: "ابتلي بالحوت." } ] },
+            { id: 78, category: "العفة", difficulty: "صعب", page: "ص 24", priority: false, hint: "قصة الغار", question: "في قصة الثلاثة الذين أُغلق عليهم الغار، توسل أحدهم بعفته حين أمكنته ابنة عمه من نفسها فقال لها:", options: [ { text: "لا أملك المال الكافي", isCorrect: false, rationale: "بل كان يملك مائة دينار وقدمها لها." }, { text: "أخاف أن يفتضح أمري", isCorrect: false, rationale: "كان في خلوة تامة." }, { text: "قام وتركها خشية من الله وتوسل بهذا العمل الصالح", isCorrect: true, rationale: "قالت له: اتق الله ولا تفض الخاتم إلا بحقه، فقام وتركها لله." }, { text: "أجبرها على الزواج", isCorrect: false, rationale: "غير صحيح." } ] },
+            { id: 79, category: "العفة", difficulty: "سهل", page: "ص 24", priority: true, hint: "خطر الفاحشة", question: "ما هي العاقبة الدنيوية لشيوع الفاحشة وغياب العفة في المجتمع؟", options: [ { text: "زيادة الثروة", isCorrect: false, rationale: "عكس ذلك." }, { text: "اضطراب المجتمع، تفكك الأسر، وانتشار الجريمة", isCorrect: true, rationale: "ضياع العفة يؤدي لهلاك المجتمعات وتفككها." }, { text: "التقدم التقني المفرط", isCorrect: false, rationale: "لا علاقة مباشرة." }, { text: "انعزال الناس عن بعضهم", isCorrect: false, rationale: "بل انتشار الجرائم." } ] },
+
+            // Modesty (الحياء)
+            { id: 80, category: "الحياء", difficulty: "سهل", page: "ص 24", priority: true, hint: "ضد القباحة", question: "تعريف الحياء في اللغة:", options: [ { text: "ضد الوقاحة", isCorrect: true, rationale: "مأخوذة من الاستحياء ضد الوقاحة." }, { text: "الخوف من الناس", isCorrect: false, rationale: "ليس المعنى الدقيق." }, { text: "ضعف الشخصية", isCorrect: false, rationale: "الحياء لا يعني الضعف." }, { text: "التردد في الكلام", isCorrect: false, rationale: "هذا تلعثم." } ] },
+            { id: 81, category: "الحياء", difficulty: "متوسط", page: "ص 24", priority: false, hint: "انقباض النفس", question: "تعريف الحياء اصطلاحاً عند الراغب هو: (انقباض النفس عن ...... وتركها).", options: [ { text: "القبائح", isCorrect: true, rationale: "انقباض النفس عن القبائح." }, { text: "الطاعات", isCorrect: false, rationale: "مستحيل." }, { text: "الناس", isCorrect: false, rationale: "هذه عزلة." }, { text: "الأموال", isCorrect: false, rationale: "هذا زهد." } ] },
+            { id: 82, category: "الحياء", difficulty: "صعب", page: "ص 25", priority: true, hint: "أنواع الحياء", question: "الحياء الذي يُعد مكلفاً به شرعاً، وقد ينطبع به الشخص بالتعود والمجاهدة هو:", options: [ { text: "الحياء الغريزي (الطبيعي)", isCorrect: false, rationale: "الغريزي لا كلفة فيه." }, { text: "الحياء المكتسب", isCorrect: true, rationale: "المكتسب هو الذي جعله الشارع من الإيمان وكُلف به العبد." }, { text: "حياء الخوف فقط", isCorrect: false, rationale: "ليس تصنيفاً هنا." }, { text: "الحياء السلبي", isCorrect: false, rationale: "مذموم." } ] },
+            { id: 83, category: "الحياء", difficulty: "سهل", page: "ص 25", priority: true, hint: "صفة لله", question: "هل (الحَيي) من صفات الله عز وجل واسمائه؟", options: [ { text: "نعم، إن ربكم حيي كريم يستحي من عبده...", isCorrect: true, rationale: "ثبت في الحديث الصحيح." }, { text: "لا، الحياء صفة بشرية فقط", isCorrect: false, rationale: "خطأ." }, { text: "نعم، لكنه خاص بالملائكة", isCorrect: false, rationale: "خطأ." }, { text: "لم يرد في النصوص", isCorrect: false, rationale: "ورد في السنة." } ] },
+            { id: 84, category: "الحياء", difficulty: "سهل", page: "ص 25", priority: false, hint: "وصف الصحابة", question: "وصف الصحابة حياء النبي ﷺ بأنه كان أشد حياءً من:", options: [ { text: "العذراء في خدرها", isCorrect: true, rationale: "كان إذا رأى شيئاً يكرهه عرف في وجهه لشدة حيائه." }, { text: "الطفل الصغير", isCorrect: false, rationale: "اللفظ: العذراء." }, { text: "الأسد في عرينه", isCorrect: false, rationale: "دلالة شجاعة." }, { text: "الغريب في قومه", isCorrect: false, rationale: "لم يرد." } ] },
+            { id: 85, category: "الحياء", difficulty: "متوسط", page: "ص 25", priority: true, hint: "موقف عثمان", question: "لماذا غطى النبي ﷺ فخذه عندما دخل عليه عثمان بن عفان رضي الله عنه؟", options: [ { text: "لأنه كان الجو بارداً", isCorrect: false, rationale: "غير صحيح." }, { text: "لأنه قال: (ألا أستحي من رجل تستحي منه الملائكة)", isCorrect: true, rationale: "تقديراً لحياء عثمان ومكانته." }, { text: "لأنه أراد الخروج", isCorrect: false, rationale: "غير صحيح." }, { text: "لأن عثمان طلب منه ذلك", isCorrect: false, rationale: "لم يطلب." } ] },
+            { id: 86, category: "الحياء", difficulty: "متوسط", page: "ص 25", priority: true, hint: "حدود الحياء الممدوح", question: "الحياء الممدوح يحمل صاحبه على ترك القبيح، لكنه لا يمنعه من:", options: [ { text: "قول الحق أو طلب العلم أو الأمر بالمعروف", isCorrect: true, rationale: "قال مجاهد: لا يتعلم العلم مستحي ولا مستكبر. فالحياء المانع من الحق مذموم (خجل/ضعف)." }, { text: "الوقوع في الشبهات", isCorrect: false, rationale: "الحياء يمنع من الشبهات." }, { text: "سب الناس", isCorrect: false, rationale: "يمنع من ذلك." }, { text: "أكل أموال الناس", isCorrect: false, rationale: "يمنع من ذلك." } ] },
+            { id: 87, category: "الحياء", difficulty: "صعب", page: "ص 25", priority: false, hint: "ابن القيم", question: "قال ابن القيم: (من عقوبات المعاصي ذهاب الحياء الذي هو مادة...)", options: [ { text: "العقل", isCorrect: false, rationale: "اللفظ مختلف." }, { text: "حياة القلب", isCorrect: true, rationale: "وذهابه ذهاب الخير أجمعه." }, { text: "صحة البدن", isCorrect: false, rationale: "المعصية تمرض القلب." }, { text: "المال والجاه", isCorrect: false, rationale: "ليس اللفظ." } ] },
+            { id: 88, category: "الحياء", difficulty: "متوسط", page: "ص 26", priority: true, hint: "الوقاحة", question: "قال ﷺ: (إن مما أدرك الناس من كلام النبوة الأولى: إذا لم تستح فـ...)", options: [ { text: "فتكلم بما تريد", isCorrect: false, rationale: "ليس اللفظ." }, { text: "فاصنع ما شئت", isCorrect: true, rationale: "دلالة على أن رادع الإنسان الأول هو الحياء، فإن فقده تجرأ على كل قبيح." }, { text: "فاهرب بعيداً", isCorrect: false, rationale: "ليس اللفظ." }, { text: "فأخفِ وجهك", isCorrect: false, rationale: "ليس اللفظ." } ] },
+            { id: 89, category: "الحياء", difficulty: "سهل", page: "ص 26", priority: false, hint: "الفحش", question: "من قل حياؤه وقع في (البذاءة وفحش القول)، فكيف حكم الإسلام على الفُحش؟", options: [ { text: "مُحرم ومبغوض، قال تعالى: (لا يحب الله الجهر بالسوء من القول...)", isCorrect: true, rationale: "الفحش مبغوض وفاعله شَرُّ الناس." }, { text: "مكروه فقط", isCorrect: false, rationale: "بل محرم وموجب لعذاب الله." }, { text: "مباح إذا كان مازحاً", isCorrect: false, rationale: "محرم بكل حال." }, { text: "يُعذر به الجاهل", isCorrect: false, rationale: "السؤال عن الحكم المطلق." } ] },
+
+            // Social Ethics (الأخلاق الاجتماعية)
+            { id: 90, category: "الأخلاق الاجتماعية", difficulty: "سهل", page: "ص 27", priority: true, hint: "لماذا المجتمع؟", question: "لماذا أولى الإسلام الأخلاق على مستوى المجتمع عناية بالغة؟", options: [ { text: "لزيادة الإنتاج الصناعي فقط", isCorrect: false, rationale: "هذا هدف ثانوي مادي." }, { text: "لضمان تماسك المجتمعات وتقوية أواصرها المبنية على الثقة والمحبة", isCorrect: true, rationale: "بدون الأخلاق يتصارع الأفراد على المنفعة رغم التقدم التقني." }, { text: "لتوحيد اللغات واللهجات", isCorrect: false, rationale: "لا علاقة له." }, { text: "لمحو الفروق الطبقية المالية تماماً", isCorrect: false, rationale: "الإسلام ينظمها بالزكاة لكن لا يمحو التفاوت المكتسب بالجهد." } ] },
+            { id: 91, category: "الأخلاق الاجتماعية", difficulty: "متوسط", page: "ص 27", priority: true, hint: "آية المائدة", question: "ما هو المبدأ الاجتماعي الأساسي الذي أقرته سورة المائدة (وتعاونوا على البر والتقوى)؟", options: [ { text: "التعاون على الحروب الهجومية", isCorrect: false, rationale: "ليس المبدأ." }, { text: "تأسيس مبدأ التعاون على الخير ونبذ التعاون على الإثم والعدوان", isCorrect: true, rationale: "هذه الآية قاعدة جامعة في حث المسلمين على المعاونة في الخير." }, { text: "الاعتماد على النفس والاستقلالية المطلقة", isCorrect: false, rationale: "الإسلام يدعو للتعاون." }, { text: "دفع الضرائب للدولة", isCorrect: false, rationale: "ليس سياق الآية." } ] },
+            { id: 92, category: "الأخلاق الاجتماعية", difficulty: "متوسط", page: "ص 27", priority: false, hint: "سورة العصر", question: "جعل القرآن (التواصي بالحق والتواصي بالصبر) من خصال النجاة من الخسران في سورة العصر، فما معنى التواصي؟", options: [ { text: "أن يوصي الكبير الصغير فقط", isCorrect: false, rationale: "متبادل." }, { text: "أن يوصي بعض أفراد المجتمع بعضاً ويحث كل واحد الآخر على الخير", isCorrect: true, rationale: "التواصي صيغة تفاعل تعني التبادل بين جميع أفراد المجتمع." }, { text: "أن يكتب الإنسان وصيته قبل الموت", isCorrect: false, rationale: "تلك وصية الميراث." }, { text: "أن يتواصى الناس بالسكوت", isCorrect: false, rationale: "بل بالحق والصبر." } ] },
+            { id: 93, category: "الأخلاق الاجتماعية", difficulty: "صعب", page: "ص 27", priority: false, hint: "كلام ابن سعدي", question: "قال ابن سعدي عن سورة العصر: (بالإيمان والعمل الصالح يكمل الإنسان نفسه، وبالتواصي بالحق والصبر يكمل...)", options: [ { text: "دينه", isCorrect: false, rationale: "صحيح لكن اللفظ لغيره." }, { text: "غيره (مجتمعه)", isCorrect: true, rationale: "التواصي موجه لإصلاح وتكميل المجتمع (الغير)." }, { text: "دنياه", isCorrect: false, rationale: "لا." }, { text: "عقله", isCorrect: false, rationale: "لا." } ] },
+            { id: 94, category: "الأخلاق الاجتماعية", difficulty: "متوسط", page: "ص 28", priority: true, hint: "مواجهة الإساءة", question: "من أعظم كمال الأخلاق الاجتماعية (دفع السيئة بالحسنة)، ما ثمرة ذلك كما في الآية (ادفع بالتي هي أحسن...)؟", options: [ { text: "يُعاقب المسيء بالسجن", isCorrect: false, rationale: "هذا اختصاص القضاء." }, { text: "يتحول العدو المسيء كأنه ولي حميم (صديق مقرب)", isCorrect: true, rationale: "فإذا الذي بينك وبينه عداوة كأنه ولي حميم." }, { text: "يتم تجاهله للأبد", isCorrect: false, rationale: "هذا قطيعة." }, { text: "يُقابل بشتيمة أكبر", isCorrect: false, rationale: "هذا محرم." } ] },
+            { id: 95, category: "الأخلاق الاجتماعية", difficulty: "سهل", page: "ص 28", priority: false, hint: "هل يحرم رد الإساءة؟", question: "هل يحرم في الإسلام أن يجازي الإنسان السيئة بسيئة مثلها (بالمثل دون اعتداء)؟", options: [ { text: "نعم، يحرم قطعاً ويجب العفو", isCorrect: false, rationale: "لا يحرم القصاص أو أخذ الحق بالمثل." }, { text: "لا يحرم، ولكن دفع السيئة بالحسنة أعلى وأحسن عاقبة", isCorrect: true, rationale: "القرآن يهذب النفس لترتقي للأعظم أجراً (العفو)." }, { text: "يحرم في حق الأقارب فقط", isCorrect: false, rationale: "يجوز أخذ الحق بضوابط." }, { text: "يجب الرد بمثلها وجوباً", isCorrect: false, rationale: "لا يجب، بل العفو أفضل." } ] },
+            { id: 96, category: "الأخلاق الاجتماعية", difficulty: "صعب", page: "ص 28", priority: true, hint: "متى نترك العفو؟", question: "التوازن في الإسلام: متى يكون العفو والحلم عن المخطئ مذموماً، ويُعدل عنه إلى الحزم؟", options: [ { text: "إذا كان الخلاف على مال بسيط", isCorrect: false, rationale: "العفو فيه ممدوح." }, { text: "إذا كان العفو والتسامح يفضي إلى انتشار الظلم والتمادي في الشر", isCorrect: true, rationale: "الإسلام دين توازن، إذا كان العفو يشجع المجرم على جرائمه فالحزم والمجازاة أوجب لحماية المجتمع." }, { text: "إذا كان المخطئ من الأقارب", isCorrect: false, rationale: "العفو عن القريب أولى غالباً." }, { text: "العفو لا يُذم أبداً", isCorrect: false, rationale: "بل يذم إذا أدى للضعف والظلم." } ] },
+            { id: 97, category: "الأخلاق الاجتماعية", difficulty: "متوسط", page: "ص 28", priority: false, hint: "الانتصار عند البغي", question: "قال تعالى ممتدحاً المؤمنين: (والذين إذا أصابهم البغي هم ينتصرون). متى يحمد الانتصار وأخذ الحق؟", options: [ { text: "إذا كان الجاني معتدياً ومُصراً على ظلمه", isCorrect: true, rationale: "ذكره العلماء، فالانتصار محمود على المصر، والعفو محمود للندمان." }, { text: "إذا كان الجاني ضعيفاً ومعتذراً", isCorrect: false, rationale: "هنا يُحمد العفو." }, { text: "في كل الأحوال بلا استثناء", isCorrect: false, rationale: "لا، العفو أفضل أحياناً." }, { text: "إذا كان سراً", isCorrect: false, rationale: "لا علاقة." } ] },
+            { id: 98, category: "الأخلاق الاجتماعية", difficulty: "صعب", page: "ص 28", priority: false, hint: "قول ابن تيمية", question: "كيف جمع ابن تيمية بين مدح الانتصار (أخذ الحق) ومدح العفو في القرآن؟", options: [ { text: "قال إن الآيات متعارضة", isCorrect: false, rationale: "حاشا لله." }, { text: "قال إن الانتصار منسوخ بالعفو", isCorrect: false, rationale: "غير صحيح." }, { text: "قال: حمدهم على الانتصار عند البغي بقوة، والعفو عند المقدرة، بخلاف من يعفو عجزاً ووهناً", isCorrect: true, rationale: "فالعفو إنما يُحمد إذا كان ناشئاً عن قدرة وقوة، وليس عن ضعف وذل واستكانة." }, { text: "قال إن الانتصار للحكام فقط", isCorrect: false, rationale: "لم يقل ذلك هنا." } ] },
+            { id: 99, category: "خصائص الأخلاق", difficulty: "سهل", page: "ص 15", priority: true, hint: "التوازن المالي", question: "قوله تعالى: (وكلوا واشربوا ولا تسرفوا) يمثل من خصائص الأخلاق:", options: [ { text: "الوسطية والاعتدال", isCorrect: true, rationale: "الاعتدال بين التقتير والتبذير." }, { text: "الثبات", isCorrect: false, rationale: "لا علاقة." }, { text: "ربانية المصدر", isCorrect: false, rationale: "وإن كانت من الله، لكن الآية تركز على الوسطية." }, { text: "الشمول", isCorrect: false, rationale: "تركز على الاستهلاك المعتدل." } ] },
+            { id: 100, category: "الصدق", difficulty: "متوسط", page: "ص 19", priority: false, hint: "افتراء الكذب", question: "قال تعالى: (إنما يفتري الكذب الذين لا يؤمنون)، يدل ذلك على أن:", options: [ { text: "الكذاب كافر مخلد في النار", isCorrect: false, rationale: "الكذب ذنب ونفاق ولكنه لا يكفر بمفرده الكفر الأكبر إلا إذا كان كذباً بآيات الله." }, { text: "الكذب يتنافى مع كمال الإيمان", isCorrect: true, rationale: "لا يجتمع كمال الإيمان والكذب في قلب مسلم." }, { text: "الصدق غير واجب على الكفار", isCorrect: false, rationale: "مطلوب من الجميع." }, { text: "الإيمان هو الصدق المالي فقط", isCorrect: false, rationale: "بل هو أشمل." } ] }
+        ];
+
+        // Ensure no repeats and randomize options safely via a deep copy function
+        const getFreshMCQs = () => {
+            return mcqBank.map(q => ({
+                ...q,
+                options: [...q.options].sort(() => Math.random() - 0.5)
+            }));
+        };
+
+        // --- THEMES ---
+        const themes = [
+            { id: 'classic', name: 'الكلاسيكي الأزرق', bg: 'bg-slate-50', text: 'text-slate-900', card: 'bg-white', primary: 'bg-blue-600', hover: 'hover:bg-blue-700', border: 'border-slate-200' },
+            { id: 'dark', name: 'الوضع الليلي', bg: 'bg-gray-900', text: 'text-gray-100', card: 'bg-gray-800', primary: 'bg-indigo-500', hover: 'hover:bg-indigo-600', border: 'border-gray-700' },
+            { id: 'cyberpunk', name: 'السايبربانك (نيون)', bg: 'bg-neutral-900', text: 'text-yellow-400', card: 'bg-neutral-800', primary: 'bg-pink-600', hover: 'hover:bg-pink-700', border: 'border-cyan-500' },
+            { id: 'ocean', name: 'أعماق المحيط', bg: 'bg-cyan-900', text: 'text-cyan-50', card: 'bg-cyan-800', primary: 'bg-teal-500', hover: 'hover:bg-teal-600', border: 'border-cyan-700' },
+            { id: 'forest', name: 'غابة خضراء', bg: 'bg-green-50', text: 'text-emerald-900', card: 'bg-white', primary: 'bg-emerald-600', hover: 'hover:bg-emerald-700', border: 'border-green-200' },
+            { id: 'sunset', name: 'غروب برتقالي', bg: 'bg-orange-50', text: 'text-orange-950', card: 'bg-white', primary: 'bg-orange-500', hover: 'hover:bg-orange-600', border: 'border-orange-200' },
+            { id: 'lavender', name: 'لافندر ناعم', bg: 'bg-fuchsia-50', text: 'text-purple-950', card: 'bg-white', primary: 'bg-purple-500', hover: 'hover:bg-purple-600', border: 'border-fuchsia-200' },
+            { id: 'hacker', name: 'شاشة اختراق', bg: 'bg-black', text: 'text-green-500', card: 'bg-gray-900', primary: 'bg-green-700', hover: 'hover:bg-green-800', border: 'border-green-900' },
+            { id: 'rose', name: 'وردي ذهبي', bg: 'bg-rose-50', text: 'text-rose-950', card: 'bg-white', primary: 'bg-rose-500', hover: 'hover:bg-rose-600', border: 'border-rose-200' },
+            { id: 'sepia', name: 'ورق بني (قراءة)', bg: 'bg-amber-50', text: 'text-amber-900', card: 'bg-orange-100', primary: 'bg-amber-700', hover: 'hover:bg-amber-800', border: 'border-amber-200' }
+        ];
+
+        // --- CELEBRATIONS ---
+        const celebrations = ["🎉", "🌟", "🔥", "🚀", "💯", "🧠", "🏆", "✨", "👏", "🎯", "🎊", "💡", "🥇", "⭐", "💪", "🎓", "😎", "🥳", "🙌", "💥"];
+        const triggerConfetti = (typeIndex) => {
+            const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+            const emoji = celebrations[typeIndex % celebrations.length];
+            
+            if (typeIndex % 3 === 0) {
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            } else if (typeIndex % 3 === 1) {
+                confetti({
+                    particleCount: 40,
+                    scalar: 2,
+                    shapes: ['text'],
+                    shapeOptions: { text: { value: [emoji] } },
+                    origin: { y: 0.6 }
+                });
+            } else {
+                var duration = 1.5 * 1000;
+                var animationEnd = Date.now() + duration;
+                var interval = setInterval(function() {
+                    var timeLeft = animationEnd - Date.now();
+                    if (timeLeft <= 0) { return clearInterval(interval); }
+                    var particleCount = 50 * (timeLeft / duration);
+                    confetti(Object.assign({}, defaults, { particleCount, origin: { x: Math.random(), y: Math.random() - 0.2 } }));
+                }, 250);
+            }
+        };
+
+        // Create audio outside of the React component to prevent memory leaks and uninitialized errors
+        const successAudio = new Audio('data:audio/mp3;base64,//NExAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NExAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq');
+
+        // --- MAIN APP COMPONENT ---
+        const App = () => {
+            const [screen, setScreen] = useState('intro'); // intro, setup, quiz, review
+            const [theme, setTheme] = useState(themes[0]);
+            
+            // Setup Settings
+            const [selectedCategories, setSelectedCategories] = useState([]);
+            const [selectedDifficulty, setSelectedDifficulty] = useState('All');
+            const [questionCount, setQuestionCount] = useState('All');
+            const [mode, setMode] = useState('Comprehensive'); // Comprehensive, Exam
+            
+            // Quiz State
+            const [activeMCQs, setActiveMCQs] = useState([]);
+            const [currentIndex, setCurrentIndex] = useState(0);
+            const [answers, setAnswers] = useState({}); // { index: selectedOptionIndex }
+            const [confidences, setConfidences] = useState({}); // { index: 'High' | 'Medium' | 'Low' }
+            const [flagged, setFlagged] = useState({}); // { index: boolean }
+            const [eliminated, setEliminated] = useState({}); // { index: [optIdx, optIdx] }
+            const [showHint, setShowHint] = useState(false);
+            const [isSplitScreen, setIsSplitScreen] = useState(true);
+            const [timeLeft, setTimeLeft] = useState(0); // 0 means no timer
+            const [examActive, setExamActive] = useState(false);
+            const [quickReviewMode, setQuickReviewMode] = useState(false);
+            const [toastMsg, setToastMsg] = useState(null);
+            const [showSnaps, setShowSnaps] = useState(true);
+            const [activeSnap, setActiveSnap] = useState(null);
+            
+            // Extract categories
+            const allCategories = [...new Set(mcqBank.map(q => q.category))];
+
+            // Start Quiz
+            const startQuiz = () => {
+                let filtered = getFreshMCQs();
+                if (selectedCategories.length > 0) {
+                    filtered = filtered.filter(q => selectedCategories.includes(q.category));
+                }
+                if (selectedDifficulty !== 'All') {
+                    filtered = filtered.filter(q => q.difficulty === selectedDifficulty);
+                }
+                
+                // Shuffle
+                filtered = filtered.sort(() => Math.random() - 0.5);
+                
+                // Cut
+                if (questionCount !== 'All') {
+                    filtered = filtered.slice(0, parseInt(questionCount));
+                }
+
+                if (filtered.length === 0) {
+                    setToastMsg("لا توجد أسئلة تطابق تصفيتك المحددة!");
+                    setTimeout(() => setToastMsg(null), 3000);
+                    return;
+                }
+
+                setActiveMCQs(filtered);
+                setCurrentIndex(0);
+                setAnswers({});
+                setConfidences({});
+                setFlagged({});
+                setEliminated({});
+                setShowHint(false);
+                setQuickReviewMode(false);
+                setActiveSnap(null);
+                
+                if (mode === 'Exam') {
+                    setTimeLeft(filtered.length * 60);
+                    setExamActive(true);
+                } else {
+                    setTimeLeft(0);
+                    setExamActive(false);
+                }
+                
+                setScreen('quiz');
+            };
+
+            // Timer
+            useEffect(() => {
+                let timer;
+                if (screen === 'quiz' && examActive && timeLeft > 0) {
+                    timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+                } else if (timeLeft === 0 && examActive && screen === 'quiz') {
+                    setScreen('review');
+                }
+                return () => clearInterval(timer);
+            }, [screen, examActive, timeLeft]);
+
+            const handleAnswer = (optIndex) => {
+                if (answers[currentIndex] !== undefined && mode === 'Comprehensive') return;
+                
+                setAnswers(prev => ({ ...prev, [currentIndex]: optIndex }));
+                
+                const isCorrect = activeMCQs[currentIndex].options[optIndex].isCorrect;
+                if (mode === 'Comprehensive' && isCorrect) {
+                    try { successAudio.play().catch(e=>{}); } catch(e) {}
+                    triggerConfetti(Math.floor(Math.random() * 20));
+                }
+            };
+
+            const eliminate5050 = () => {
+                if (eliminated[currentIndex]) return;
+                const currentQ = activeMCQs[currentIndex];
+                const incorrectIndices = currentQ.options.map((o, i) => o.isCorrect ? -1 : i).filter(i => i !== -1);
+                incorrectIndices.sort(() => Math.random() - 0.5);
+                setEliminated(prev => ({ ...prev, [currentIndex]: [incorrectIndices[0], incorrectIndices[1]] }));
+            };
+
+            const calculateScore = () => {
+                let correct = 0;
+                activeMCQs.forEach((q, i) => {
+                    if (answers[i] !== undefined && q.options[answers[i]]?.isCorrect) correct++;
+                });
+                return correct;
+            };
+
+            // Intro Screen
+            if (screen === 'intro') {
+                return (
+                    <div className={`min-h-screen ${theme.bg} ${theme.text} flex flex-col items-center justify-center relative overflow-hidden transition-colors duration-500`}>
+                        {/* Decorative background elements */}
+                        <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 opacity-30 pointer-events-none">
+                            <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob"></div>
+                            <div className="absolute top-[20%] right-[-10%] w-96 h-96 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob animation-delay-2000"></div>
+                            <div className="absolute bottom-[-20%] left-[20%] w-96 h-96 bg-pink-400 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob animation-delay-4000"></div>
+                        </div>
+
+                        <div className="z-10 text-center fade-in flex flex-col items-center max-w-3xl px-6">
+                            <div className="w-32 h-32 mb-8 bg-white text-blue-600 rounded-full flex items-center justify-center shadow-2xl animate-bounce-slow">
+                                <i className="fa-solid fa-graduation-cap text-6xl"></i>
+                            </div>
+                            
+                            <h1 className="text-5xl md:text-7xl font-extrabold mb-6 tracking-tight drop-shadow-lg">
+                                إتقان القيم والأخلاق
+                            </h1>
+                            
+                            <p className="text-xl md:text-3xl font-light mb-8 opacity-90">
+                                مرحباً بك في المنصة التفاعلية الشاملة
+                            </p>
+                            
+                            <div className="mb-12 p-6 backdrop-blur-sm bg-black/5 rounded-3xl border border-gray-400/20 shadow-xl transform transition-transform hover:scale-105">
+                                <p className="text-lg md:text-xl font-medium">
+                                    إعداد وتصميم: <br/><span className="font-black text-yellow-500 text-3xl md:text-4xl drop-shadow-sm mt-2 block">عامر الشريف</span>
+                                </p>
+                            </div>
+
+                            <button 
+                                onClick={() => setScreen('setup')} 
+                                className={`px-10 py-5 rounded-full font-bold text-white text-xl md:text-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl ${theme.primary} flex items-center gap-3 group`}
+                            >
+                                <span>الدخول للمنصة</span>
+                                <i className="fa-solid fa-arrow-left transition-transform group-hover:-translate-x-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            // Setup Screen
+            if (screen === 'setup') {
+                return (
+                    <div className={`min-h-screen ${theme.bg} ${theme.text} p-6 flex flex-col items-center justify-center fade-in relative`}>
+                        {toastMsg && (
+                            <div className="absolute top-10 bg-red-500 text-white font-bold px-6 py-3 rounded-xl shadow-lg z-50 fade-in">
+                                <i className="fa-solid fa-exclamation-circle ml-2"></i> {toastMsg}
+                            </div>
+                        )}
+                        <div className={`max-w-2xl w-full ${theme.card} p-8 rounded-2xl shadow-xl border ${theme.border}`}>
+                            <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
+                                <i className="fa-solid fa-book-open text-4xl"></i>
+                                إتقان القيم والأخلاق
+                            </h1>
+                            <p className="opacity-70 mb-8">محرك اختبارات عالي الجودة مستمد من المقرر الأكاديمي (100 سؤال شامل)</p>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div>
+                                    <label className="block font-semibold mb-2">الأقسام (اتركه فارغاً لاختيار الكل)</label>
+                                    <div className="space-y-2 mb-6 max-h-40 overflow-y-auto custom-scrollbar">
+                                        {allCategories.map(cat => (
+                                            <label key={cat} className="flex items-center gap-2 cursor-pointer">
+                                                <input type="checkbox" 
+                                                    checked={selectedCategories.includes(cat)}
+                                                    onChange={(e) => {
+                                                        if(e.target.checked) setSelectedCategories([...selectedCategories, cat]);
+                                                        else setSelectedCategories(selectedCategories.filter(c => c !== cat));
+                                                    }}
+                                                    className="rounded border-gray-300"
+                                                />
+                                                <span className="text-sm">{cat}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+
+                                    <label className="block font-semibold mb-2">درجة الصعوبة</label>
+                                    <select className={`w-full p-2 rounded border ${theme.border} bg-transparent mb-6`} 
+                                            value={selectedDifficulty} onChange={e => setSelectedDifficulty(e.target.value)}>
+                                        <option value="All">جميع المستويات</option>
+                                        <option value="سهل">سهل (تذكر)</option>
+                                        <option value="متوسط">متوسط (فهم وتطبيق)</option>
+                                        <option value="صعب">صعب (تحليل)</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block font-semibold mb-2">عدد الأسئلة</label>
+                                    <select className={`w-full p-2 rounded border ${theme.border} bg-transparent mb-6`}
+                                            value={questionCount} onChange={e => setQuestionCount(e.target.value)}>
+                                        <option value="10">10 أسئلة</option>
+                                        <option value="20">20 سؤالاً</option>
+                                        <option value="50">50 سؤالاً</option>
+                                        <option value="All">جميع الأسئلة (100)</option>
+                                    </select>
+
+                                    <label className="block font-semibold mb-2">نمط المذاكرة</label>
+                                    <div className="flex gap-4 mb-4">
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input type="radio" name="mode" value="Comprehensive" checked={mode === 'Comprehensive'} onChange={() => setMode('Comprehensive')} />
+                                            <span className="text-sm">شامل (تغذية راجعة فورية)</span>
+                                        </label>
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input type="radio" name="mode" value="Exam" checked={mode === 'Exam'} onChange={() => setMode('Exam')} />
+                                            <span className="text-sm">اختبار (مؤقت، بلا إجابات)</span>
+                                        </label>
+                                    </div>
+
+                                    <label className="flex items-center gap-2 cursor-pointer mb-6 p-3 rounded-lg bg-blue-50 border border-blue-200 text-blue-900 transition hover:bg-blue-100">
+                                        <input type="checkbox" checked={showSnaps} onChange={(e) => setShowSnaps(e.target.checked)} className="w-4 h-4 text-blue-600 rounded" />
+                                        <span className="font-semibold text-sm"><i className="fa-solid fa-image ml-1"></i> تفعيل المحاكي المرجعي لصفحات المقرر</span>
+                                    </label>
+                                    
+                                    <label className="block font-semibold mb-2">المظهر (الثيم)</label>
+                                    <select className={`w-full p-2 rounded border ${theme.border} bg-transparent mb-6`}
+                                            value={theme.id} onChange={e => setTheme(themes.find(t => t.id === e.target.value))}>
+                                        {themes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button onClick={startQuiz} className={`w-full py-4 rounded-xl font-bold text-white text-lg transition-transform hover:scale-[1.02] ${theme.primary} shadow-lg flex items-center justify-center gap-2`}>
+                                <i className="fa-solid fa-play"></i> ابدأ الجلسة
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            // Quiz Screen
+            if (screen === 'quiz') {
+                const currentQ = activeMCQs[currentIndex];
+                const hasAnswered = answers[currentIndex] !== undefined;
+                const isCorrect = hasAnswered ? currentQ.options[answers[currentIndex]]?.isCorrect : false;
+
+                const formatTime = (seconds) => {
+                    const m = Math.floor(seconds / 60);
+                    const s = seconds % 60;
+                    return `${m}:${s < 10 ? '0' : ''}${s}`;
+                };
+
+                return (
+                    <div className={`min-h-screen ${theme.bg} ${theme.text} flex flex-col fade-in transition-colors duration-300 relative`}>
+                        {toastMsg && (
+                            <div className="absolute top-20 left-1/2 transform -translate-x-1/2 bg-red-500 text-white font-bold px-6 py-3 rounded-xl shadow-lg z-50 fade-in text-center max-w-md">
+                                <i className="fa-solid fa-exclamation-circle ml-2"></i> {toastMsg}
+                            </div>
+                        )}
+                        
+                        <header className={`${theme.card} border-b ${theme.border} p-4 flex justify-between items-center shadow-sm`}>
+                            <div className="flex items-center gap-4">
+                                <button onClick={() => setIsSplitScreen(!isSplitScreen)} className={`p-2 rounded ${theme.hover} border ${theme.border} hidden md:flex items-center gap-2`} title="تغيير العرض">
+                                    <i className="fa-solid fa-columns"></i>
+                                    <span className="text-sm font-semibold">{isSplitScreen ? 'ملء الشاشة' : 'تقسيم الشاشة'}</span>
+                                </button>
+                                <span className="font-bold hidden sm:block">سؤال: {currentIndex + 1} / {activeMCQs.length}</span>
+                            </div>
+                            
+                            {mode === 'Exam' && (
+                                <div className={`font-mono text-xl font-bold px-4 py-1 rounded bg-opacity-20 ${timeLeft < 60 ? 'bg-red-500 text-red-500' : ''}`}>
+                                    {formatTime(timeLeft)}
+                                </div>
+                            )}
+
+                            <div className="flex items-center gap-3">
+                                <button onClick={() => setScreen('review')} className="px-4 py-2 rounded font-semibold text-sm bg-red-500 text-white hover:bg-red-600 transition">
+                                    إنهاء الاختبار
+                                </button>
+                            </div>
+                        </header>
+
+                        <div className="h-1.5 w-full bg-gray-200 opacity-50">
+                            <div className={`h-full ${theme.primary} transition-all duration-300`} style={{ width: `${((currentIndex + 1) / activeMCQs.length) * 100}%` }}></div>
+                        </div>
+
+                        <div className="flex-1 flex overflow-hidden">
+                            {isSplitScreen && (
+                                <div className={`w-1/3 border-l ${theme.border} ${theme.card} p-4 overflow-y-auto hidden md:block custom-scrollbar shadow-inner`}>
+                                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><i className="fa-solid fa-book"></i> ملخص المقرر</h2>
+                                    <div className="space-y-4">
+                                        {studyNotes.map((note, idx) => (
+                                            <div key={idx} className={`p-3 rounded border ${theme.border} ${note.priority ? 'border-r-4 border-r-yellow-400' : ''}`}>
+                                                <h3 className="font-bold text-sm mb-1 flex items-center gap-1">
+                                                    {note.priority && <i className="fa-solid fa-star text-yellow-500"></i>}
+                                                    {note.category}
+                                                </h3>
+                                                <p className="text-xs opacity-80 leading-relaxed">{note.content}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex-1 p-4 md:p-8 overflow-y-auto relative flex flex-col items-center">
+                                <div className={`max-w-3xl w-full flex-1 flex flex-col`}>
+                                    
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="flex gap-2 flex-wrap">
+                                            <span className={`text-xs font-bold px-2 py-1 rounded bg-opacity-20 uppercase tracking-wider ${theme.text} border ${theme.border}`}>{currentQ.category}</span>
+                                            <span className={`text-xs font-bold px-2 py-1 rounded bg-opacity-20 uppercase tracking-wider ${theme.text} border ${theme.border}`}>{currentQ.difficulty}</span>
+                                            <span className={`text-xs font-bold px-2 py-1 rounded bg-opacity-20 uppercase tracking-wider text-blue-500 border border-blue-200`}><i className="fa-solid fa-book-open text-xs inline ml-1"></i>{currentQ.page}</span>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            {currentQ.priority && <i className="fa-solid fa-star text-2xl text-yellow-400" title="مهم جداً"></i>}
+                                            <button onClick={() => setFlagged(prev => ({...prev, [currentIndex]: !prev[currentIndex]}))} title="تحديد للمراجعة">
+                                                <i className={`fa-solid fa-flag text-xl transition-colors ${flagged[currentIndex] ? 'text-red-500' : 'opacity-30'}`}></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <h2 className="text-2xl md:text-3xl font-medium leading-snug mb-6">
+                                        {currentQ.question}
+                                    </h2>
+
+                                    {showSnaps && !quickReviewMode && (
+                                        <button onClick={() => setActiveSnap(currentQ)} className="mb-6 px-4 py-2 bg-slate-100 border border-slate-300 text-slate-700 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-slate-200 transition shadow-sm w-max">
+                                            <i className="fa-solid fa-file-lines text-blue-500"></i> 
+                                            مرجع صفحة المقرر
+                                        </button>
+                                    )}
+
+                                    {quickReviewMode && (
+                                        <div className="mb-6 p-4 rounded bg-green-500 bg-opacity-10 border border-green-500">
+                                            <p className="font-bold text-green-600 mb-1">الإجابة الصحيحة:</p>
+                                            <p className="text-lg">{currentQ.options.find(o => o.isCorrect)?.text}</p>
+                                            <p className="mt-2 text-sm opacity-80 italic">{currentQ.options.find(o => o.isCorrect)?.rationale}</p>
+                                        </div>
+                                    )}
+
+                                    {!hasAnswered && !quickReviewMode && (
+                                        <div className="mb-6 p-4 rounded-xl border border-dashed border-gray-400 bg-opacity-5 text-center">
+                                            <p className="text-sm font-semibold mb-3 opacity-70">تقييم الميتاكوجنيشن: ما مدى ثقتك بإجابتك عن هذا الموضوع؟</p>
+                                            <div className="flex justify-center gap-4">
+                                                {['منخفض', 'متوسط', 'عالي'].map(level => (
+                                                    <button key={level} 
+                                                        onClick={() => setConfidences(prev => ({...prev, [currentIndex]: level}))}
+                                                        className={`px-4 py-1.5 rounded-full text-sm font-bold border transition ${confidences[currentIndex] === level ? theme.primary + ' text-white' : 'border-gray-400 hover:bg-gray-200 hover:text-black'}`}>
+                                                        {level}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {!quickReviewMode && (
+                                        <div className="space-y-3 mb-8 flex-1">
+                                            {currentQ.options.map((option, idx) => {
+                                                const isSelected = answers[currentIndex] === idx;
+                                                const isEliminated = eliminated[currentIndex]?.includes(idx);
+                                                
+                                                let stateClass = `${theme.card} border ${theme.border} hover:border-gray-400 cursor-pointer`;
+                                                
+                                                if (hasAnswered && mode === 'Comprehensive') {
+                                                    if (option.isCorrect) stateClass = "bg-green-100 border-green-500 text-green-900 shadow-md transform scale-[1.01]";
+                                                    else if (isSelected && !option.isCorrect) stateClass = "bg-red-100 border-red-500 text-red-900";
+                                                    else stateClass = "opacity-50 border-gray-200 pointer-events-none";
+                                                } else if (hasAnswered && mode === 'Exam') {
+                                                    if (isSelected) stateClass = `${theme.primary} text-white`;
+                                                    else stateClass = "opacity-60 hover:opacity-100 hover:border-gray-400"; 
+                                                }
+
+                                                if (isEliminated) stateClass = "opacity-20 line-through pointer-events-none";
+
+                                                return (
+                                                    <div key={idx} onClick={() => handleAnswer(idx)} 
+                                                         className={`p-4 rounded-xl transition-all duration-200 flex items-start gap-4 ${stateClass}`}>
+                                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5
+                                                            ${isSelected ? 'border-current bg-current' : 'border-gray-400'}`}>
+                                                            {isSelected && <div className="w-2 h-2 rounded-full bg-white"></div>}
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <p className="text-lg leading-relaxed">{option.text}</p>
+                                                            
+                                                            {hasAnswered && mode === 'Comprehensive' && (
+                                                                <p className={`mt-2 text-sm italic ${option.isCorrect ? 'text-green-700' : 'text-red-700 opacity-80'}`}>
+                                                                    <i className={`fa-solid ${option.isCorrect ? "fa-check-circle" : "fa-times-circle"} inline ml-1`}></i>
+                                                                    {option.rationale}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+
+                                    <div className="flex justify-between items-center mt-auto pt-4 border-t border-gray-200 border-opacity-20">
+                                        <div className="flex gap-2">
+                                            <button onClick={() => setShowHint(!showHint)} className={`p-2 rounded-full border transition-all ${showHint ? 'bg-yellow-100 text-yellow-700 border-yellow-400' : 'border-gray-400 hover:bg-yellow-50 hint-pulse'}`} title="إظهار التلميح">
+                                                <i className="fa-solid fa-lightbulb text-lg"></i>
+                                            </button>
+                                            <button onClick={eliminate5050} disabled={eliminated[currentIndex] || hasAnswered} className={`px-3 py-1.5 rounded-full text-sm font-bold border transition ${eliminated[currentIndex] ? 'opacity-30' : 'border-purple-400 text-purple-600 hover:bg-purple-50'}`} title="حذف إجابتين خاطئتين">
+                                                50/50
+                                            </button>
+                                            <button onClick={() => setQuickReviewMode(!quickReviewMode)} className="px-3 py-1.5 rounded-full text-sm font-bold border border-blue-400 text-blue-600 hover:bg-blue-50" title="المراجعة السريعة للإجابة">
+                                                <i className="fa-solid fa-bolt inline ml-1"></i> مراجعة
+                                            </button>
+                                        </div>
+
+                                        <div className="flex gap-3">
+                                            <button disabled={currentIndex === 0} onClick={() => {setCurrentIndex(curr => curr - 1); setShowHint(false); setQuickReviewMode(false);}} className={`px-6 py-2 rounded-xl font-bold transition ${currentIndex === 0 ? 'opacity-30 cursor-not-allowed' : `bg-gray-200 text-black hover:bg-gray-300`}`}>
+                                                السابق
+                                            </button>
+                                            
+                                            {currentIndex === activeMCQs.length - 1 ? (
+                                                <button onClick={() => setScreen('review')} className={`px-6 py-2 rounded-xl font-bold text-white transition ${theme.primary} shadow-md hover:scale-105`}>
+                                                    تسليم
+                                                </button>
+                                            ) : (
+                                                <button onClick={() => {setCurrentIndex(curr => curr + 1); setShowHint(false); setQuickReviewMode(false);}} className={`px-8 py-2 rounded-xl font-bold text-white transition ${theme.primary} shadow-md hover:scale-105 flex items-center gap-2`}>
+                                                    التالي <i className="fa-solid fa-arrow-left"></i>
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    
+                                    {showHint && !quickReviewMode && (
+                                        <div className="absolute bottom-24 right-1/2 transform translate-x-1/2 w-11/12 max-w-md bg-yellow-100 border border-yellow-400 text-yellow-900 p-4 rounded-xl shadow-2xl fade-in z-10 flex items-start gap-3">
+                                            <i className="fa-solid fa-info-circle text-xl flex-shrink-0 mt-0.5"></i>
+                                            <div>
+                                                <h4 className="font-bold text-sm uppercase tracking-wide mb-1">تلميح إرشادي</h4>
+                                                <p className="text-sm font-medium">{currentQ.hint}</p>
+                                            </div>
+                                            <button onClick={() => setShowHint(false)} className="mr-auto opacity-50 hover:opacity-100"><i className="fa-solid fa-times"></i></button>
+                                        </div>
+                                    )}
+
+                                </div>
+                            </div>
+                        </div>
+
+                        {activeSnap && (
+                            <div className="fixed inset-0 bg-black bg-opacity-80 z-[100] flex flex-col items-center justify-center p-4 fade-in" onClick={() => setActiveSnap(null)}>
+                                <div className="bg-white rounded-xl overflow-hidden max-w-4xl w-full shadow-2xl relative" onClick={e => e.stopPropagation()}>
+                                    <div className="p-4 bg-slate-100 border-b flex justify-between items-center">
+                                        <h3 className="font-bold text-lg text-slate-800"><i className="fa-solid fa-camera ml-2"></i>مرجع المحاضرة</h3>
+                                        <button onClick={() => setActiveSnap(null)} className="w-8 h-8 rounded-full bg-slate-200 text-slate-600 hover:bg-red-500 hover:text-white flex items-center justify-center transition">
+                                            <i className="fa-solid fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <div className="p-4 bg-slate-50 flex justify-center">
+                                        <img src={`https://placehold.co/800x450/e2e8f0/1e293b?text=%D9%85%D8%B1%D8%AC%D8%B9+%D9%85%D9%86+%D8%A7%D9%84%D9%85%D9%82%D8%B1%D8%B1%5Cn${encodeURIComponent(activeSnap.page)}`} alt="Lecture Snap" className="rounded shadow-sm w-full h-auto object-contain max-h-[70vh]" />
+                                    </div>
+                                    <div className="p-3 bg-slate-100 text-center text-sm text-slate-600 italic border-t">
+                                        *هذه صورة محاكاة للمرجع النصي في {activeSnap.page}.
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                    </div>
+                );
+            }
+
+            // Review / Results Screen
+            if (screen === 'review') {
+                const score = calculateScore();
+                const total = activeMCQs.length;
+                const percentage = Math.round((score / total) * 100);
+
+                return (
+                    <div className={`min-h-screen ${theme.bg} ${theme.text} p-4 md:p-8 fade-in relative`}>
+                        <div className={`max-w-5xl mx-auto ${theme.card} p-6 rounded-2xl shadow-xl border ${theme.border}`}>
+                            
+                            <div className="text-center mb-10 pb-10 border-b border-gray-200 border-opacity-20">
+                                <h1 className="text-4xl font-bold mb-4">اكتمل الاختبار!</h1>
+                                <div className="inline-flex flex-col items-center justify-center w-40 h-40 rounded-full border-8 border-green-400 bg-green-50 mb-4 shadow-inner">
+                                    <span className="text-5xl font-black text-green-600">{percentage}%</span>
+                                    <span className="text-sm text-green-700 font-bold">{score} / {total}</span>
+                                </div>
+                                <p className="text-xl opacity-80">
+                                    {percentage >= 90 ? "إتقان ممتاز للمقرر!" : percentage >= 70 ? "عمل جيد، أساسيات صلبة!" : "يُنصح بمراجعة الملاحظات مرة أخرى!"}
+                                </p>
+                                <div className="mt-6 flex justify-center gap-4">
+                                     <button onClick={() => setScreen('setup')} className={`px-6 py-3 rounded-xl font-bold text-white transition ${theme.primary} shadow-md`}>
+                                        <i className="fa-solid fa-rotate-right inline ml-2 text-lg"></i> ابدأ جلسة جديدة
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                                    <i className="fa-solid fa-clipboard-list text-2xl"></i> التفسيرات والمراجعة الشاملة
+                                </h2>
+                                <div className="space-y-6">
+                                    {activeMCQs.map((q, idx) => {
+                                        const userAnswerIdx = answers[idx];
+                                        const isCorrect = userAnswerIdx !== undefined && q.options[userAnswerIdx]?.isCorrect;
+                                        const isFlagged = flagged[idx];
+
+                                        return (
+                                            <div key={idx} className={`p-6 rounded-xl border ${isCorrect ? 'border-green-200 bg-green-50 bg-opacity-10' : 'border-red-200 bg-red-50 bg-opacity-10'} relative`}>
+                                                {isFlagged && <div className="absolute -top-3 -left-3 bg-red-500 text-white p-2 rounded-full shadow-lg"><i className="fa-solid fa-flag"></i></div>}
+                                                
+                                                <div className="flex gap-2 mb-2">
+                                                    <span className="text-xs font-bold px-2 py-1 bg-gray-200 text-black rounded">{q.category}</span>
+                                                    <span className="text-xs font-bold px-2 py-1 bg-blue-100 text-blue-800 rounded">{q.page}</span>
+                                                    {confidences[idx] && <span className="text-xs font-bold px-2 py-1 bg-purple-100 text-purple-800 rounded">الثقة: {confidences[idx]}</span>}
+                                                </div>
+
+                                                <h3 className="text-xl font-medium mb-4">س{idx + 1}. {q.question}</h3>
+                                                
+                                                <div className="space-y-3">
+                                                    {q.options.map((opt, oIdx) => {
+                                                        const isSelected = userAnswerIdx === oIdx;
+                                                        let style = "border-gray-200 opacity-60";
+                                                        if (opt.isCorrect) style = "border-green-500 bg-green-100 text-green-900 opacity-100 shadow-sm font-bold";
+                                                        else if (isSelected) style = "border-red-500 bg-red-100 text-red-900 opacity-100 line-through";
+
+                                                        return (
+                                                            <div key={oIdx} className={`p-3 rounded-lg border ${style} flex flex-col`}>
+                                                                <div className="flex items-center gap-2">
+                                                                    {opt.isCorrect && <i className="fa-solid fa-check-circle text-lg text-green-600"></i>}
+                                                                    {isSelected && !opt.isCorrect && <i className="fa-solid fa-times-circle text-lg text-red-600"></i>}
+                                                                    <span>{opt.text} {isSelected && '(إجابتك)'}</span>
+                                                                </div>
+                                                                <div className={`mt-2 text-sm italic ${opt.isCorrect ? 'text-green-800' : 'text-gray-600'}`}>
+                                                                    التبرير: {opt.rationale}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                    {userAnswerIdx === undefined && <p className="text-red-500 font-bold mt-2"><i className="fa-solid fa-exclamation-circle inline ml-1"></i> لقد قمت بتخطي هذا السؤال.</p>}
+                                                    
+                                                    {showSnaps && (
+                                                        <button onClick={() => setActiveSnap(q)} className="mt-4 px-4 py-2 bg-gray-100 border border-gray-300 text-gray-700 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-gray-200 transition w-max">
+                                                            <i className="fa-solid fa-file-lines"></i> عرض مرجع المقرر
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+
+                        {activeSnap && (
+                            <div className="fixed inset-0 bg-black bg-opacity-80 z-[100] flex flex-col items-center justify-center p-4 fade-in" onClick={() => setActiveSnap(null)}>
+                                <div className="bg-white rounded-xl overflow-hidden max-w-4xl w-full shadow-2xl relative" onClick={e => e.stopPropagation()}>
+                                    <div className="p-4 bg-slate-100 border-b flex justify-between items-center">
+                                        <h3 className="font-bold text-lg text-slate-800"><i className="fa-solid fa-camera ml-2"></i>مرجع المحاضرة</h3>
+                                        <button onClick={() => setActiveSnap(null)} className="w-8 h-8 rounded-full bg-slate-200 text-slate-600 hover:bg-red-500 hover:text-white flex items-center justify-center transition">
+                                            <i className="fa-solid fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <div className="p-4 bg-slate-50 flex justify-center">
+                                        <img src={`https://placehold.co/800x450/e2e8f0/1e293b?text=%D9%85%D8%B1%D8%AC%D8%B9+%D9%85%D9%86+%D8%A7%D9%84%D9%85%D9%82%D8%B1%D8%B1%5Cn${encodeURIComponent(activeSnap.page)}`} alt="Lecture Snap" className="rounded shadow-sm w-full h-auto object-contain max-h-[70vh]" />
+                                    </div>
+                                    <div className="p-3 bg-slate-100 text-center text-sm text-slate-600 italic border-t">
+                                        *هذه صورة محاكاة للمرجع النصي في {activeSnap.page}.
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                    </div>
+                );
+            }
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
